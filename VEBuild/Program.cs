@@ -8,8 +8,8 @@
         static void Main(string[] args)
         {
             string baseDir = @"c:\development\vebuild\test";
-            string solutionExtension = "vebuild";
-            string projectExtension = "build";
+            string solutionExtension = "vsln";
+            string projectExtension = "vproj";
 
             if(!Directory.Exists(baseDir))
             {
@@ -41,7 +41,14 @@
             project.SourceFiles.Add(new SourceFile { File = "main.c" });
             project.SourceFiles.Add(new SourceFile { File = "startup.c", Flags = "-std=gnu99" });
 
-            var projectFile = Path.Combine(baseDir, string.Format("{0}.{1}", project.Name, projectExtension));
+            var projectDir = Path.Combine(baseDir, project.Name);
+
+            if(!Directory.Exists(projectDir))
+            {
+                Directory.CreateDirectory(projectDir);
+            }
+
+            var projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, projectExtension));
             project.Serialize(projectFile);
 
             var deserializedSolution = Solution.Deserialize(solutionFile);
