@@ -44,12 +44,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Compilers.cs" />
+    <Compile Include="GCCToolChain.cs" />
+    <Compile Include="IConsole.cs" />
     <Compile Include="Project.cs" />
     <Compile Include="ProjectDescription.cs" />
+    <Compile Include="ProjectExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SerializedObject.cs" />
     <Compile Include="Solution.cs" />
     <Compile Include="SourceFile.cs" />
+    <Compile Include="StandardToolChain.cs" />
+    <Compile Include="Toolchain.cs" />
+    <Compile Include="ToolchainSettings.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
