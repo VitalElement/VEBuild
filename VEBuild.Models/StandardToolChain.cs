@@ -75,7 +75,7 @@
             foreach (var reference in project.References)
             {
                 var loadedReference = project.GetReference(reference);
-
+                
                 if (loadedReference.Type == ProjectType.StaticLibrary)
                 {
                     var referenceResult = await BuildLibrary(console, project, loadedReference);
@@ -119,20 +119,8 @@
                 }
             }
 
-            //bool hasBuiltSomething = false;
-
-            //if (project.ToBuild(this, project))
-            //{
-            //    hasBuiltSomething = true;
-            //    console.WriteLine(string.Format("[BB] - Building Executable - {0}", project.Title));
-            //}
-
-            var compilationResult = await Compile(console, project, project);
-
-            //if (hasBuiltSomething)
-            //{
-            //    console.WriteLine();
-            //}
+            
+            var compilationResult = await Compile(console, project, project);            
 
             compilationResult.NumberOfObjectsCompiled += compileResults.NumberOfObjectsCompiled;
 
@@ -345,6 +333,10 @@
                 return result;
             }
 
+            Semaphore compileThread = new Semaphore(32, 32);
+            int compileJobs = 0;
+            object compileJobsLock = new object();
+
             await Task.Factory.StartNew(() =>
             {
                 var outputDirectory = project.GetOutputDirectory(superProject);
@@ -359,12 +351,7 @@
                 if (!Directory.Exists(objDirectory))
                 {
                     Directory.CreateDirectory(objDirectory);
-                }
-
-                Semaphore compileThread = new Semaphore(32, 32);
-                int compileJobs = 0;
-                object compileJobsLock = new object();
-
+                }                
 
                 foreach (var file in project.SourceFiles)
                 {
@@ -426,8 +413,6 @@
                                 }
 
                             }).Start();
-
-
                         }
                         else
                         {
@@ -439,11 +424,13 @@
                         break;
                     }
                 }
+            });
 
-
+            await Task.Factory.StartNew(() =>
+            {
                 while (compileJobs != 0)
                 {
-                    Thread.Sleep(10);
+                    Thread.Yield();
                 };
             });
 
