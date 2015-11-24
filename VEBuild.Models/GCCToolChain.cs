@@ -44,7 +44,7 @@
                 fileArguments = "-x c++ -std=c++14 -fno-use-cxa-atexit";
             }
 
-            startInfo.Arguments = string.Format("{0} {1} {2} -o{3} -MMD -MP", GetCompilerArguments(superProject, file.Language), fileArguments, file.Location, outputFile);
+            startInfo.Arguments = string.Format("{0} {1} {2} -o{3} -MMD -MP", GetCompilerArguments(superProject, project, file.Language), fileArguments, file.Location, outputFile);
 
             // Hide console window
             startInfo.UseShellExecute = false;
@@ -287,18 +287,36 @@
             return result;
         }
 
-        public override string GetCompilerArguments(Project project, Language language)
+        public override string GetCompilerArguments(Project superProject, Project project, Language language)
         {
             string result = string.Empty;
 
-            result += "-Wall -c -g";
+            result += "-Wall -c -g ";
 
-            foreach (var arg in project.ToolChainArguments)
+            // toolchain includes
+
+            // Referenced includes
+
+            // public includes
+            foreach (var include in project.PublicIncludes)
+            {
+                result += string.Format("-I\"{0}\" ", Path.Combine(project.Directory, include));
+            }
+
+            // includes
+
+
+            foreach(var define in project.Defines)
+            {
+                result += string.Format("-D{0} ", define);
+            }
+
+            foreach (var arg in superProject.ToolChainArguments)
             {
                 result += string.Format(" {0}", arg);
             }
 
-            foreach (var arg in project.CompilerArguments)
+            foreach (var arg in superProject.CompilerArguments)
             {
                 result += string.Format(" {0}", arg);
             }        
@@ -307,7 +325,7 @@
             {
                 case Language.C:
                     {
-                        foreach (var arg in project.CCompilerArguments)
+                        foreach (var arg in superProject.CCompilerArguments)
                         {
                             result += string.Format(" {0}", arg);
                         }
@@ -316,7 +334,7 @@
 
                 case Language.Cpp:
                     {
-                        foreach (var arg in project.CppCompilerArguments)
+                        foreach (var arg in superProject.CppCompilerArguments)
                         {
                             result += string.Format(" {0}", arg);
                         }

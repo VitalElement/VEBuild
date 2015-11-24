@@ -42,6 +42,7 @@
             CCompilerArguments = new List<string>();
             CppCompilerArguments = new List<string>();
             BuiltinLibraries = new List<string>();
+            Defines = new List<string>();
 
         }
 
@@ -106,6 +107,13 @@
         }
 
         public List<string> Includes { get; set; }
+
+        public bool ShouldSerializeDefines()
+        {
+            return Defines.Count > 0;
+        }
+
+        public List<string> Defines { get; set; }
 
         public bool ShouldSerializeFiles()
         {

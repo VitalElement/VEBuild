@@ -7,7 +7,12 @@ namespace VEBuild.Models
     {
         public static string GetOutputDirectory(this Project project, Project superProject)
         {
-            string outputDirectory = superProject.Directory;
+            string outputDirectory = string.Empty;
+
+            if(string.IsNullOrEmpty (superProject.BuildDirectory))
+            {
+                outputDirectory = Path.Combine(superProject.Directory, "build");
+            }
 
             if (!string.IsNullOrEmpty(superProject.BuildDirectory))
             {

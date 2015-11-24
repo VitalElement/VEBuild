@@ -23,7 +23,7 @@
 
         public abstract ProcessResult Size(IConsole console, Project project, LinkResult linkResult);
 
-        public abstract string GetCompilerArguments(Project project, Language language);
+        public abstract string GetCompilerArguments(Project superProject, Project project, Language language);
 
         public abstract string GetLinkerArguments(Project project);
 
