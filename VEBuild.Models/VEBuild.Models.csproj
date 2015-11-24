@@ -45,6 +45,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compilers.cs" />
+    <Compile Include="FastGccToolChain.cs" />
+    <Compile Include="FastToolChain.cs" />
     <Compile Include="GCCToolChain.cs" />
     <Compile Include="IConsole.cs" />
     <Compile Include="Project.cs" />

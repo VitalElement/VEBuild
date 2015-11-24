@@ -1,23 +1,23 @@
-﻿namespace VEBuild.Models
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace VEBuild.Models
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-
-    public class GCCToolChain : StandardToolChain
+    public class FastGccToolChain : FastToolChain
     {
-        public GCCToolChain(ToolchainSettings settings) : base (settings)
-        {            
-        }
-
-        
-
-        public override void Compile(IConsole console, Project superProject, Project project, SourceFile file, string outputFile, CompileResult result)
+        public FastGccToolChain(ToolchainSettings settings) : base(settings)
         {
+        }
+        
+        public override CompileResult Compile(IConsole console, Project superProject, Project project, SourceFile file, string outputFile)
+        {
+            CompileResult result = new CompileResult();
+
             var startInfo = new ProcessStartInfo();
 
             startInfo.FileName = Path.Combine(Settings.ToolChainLocation, "arm-none-eabi-gcc.exe");
@@ -28,56 +28,53 @@
             {
                 result.ExitCode = -1;
                 console.WriteLine("Unable to find compiler (" + startInfo.FileName + ") Please check project compiler settings.");
-                return;
             }
-
-            // Hide console window
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
-            startInfo.CreateNoWindow = true;
-
-            string fileArguments = string.Empty;
-
-            if (file.Language == Language.Cpp)
+            else
             {
-                fileArguments = "-x c++ -std=c++14 -fno-use-cxa-atexit";
-            }
+                string fileArguments = string.Empty;
 
-            startInfo.Arguments = string.Format("{0} {1} {2} -o{3} -MMD -MP", GetCompilerArguments(superProject, project, file.Language), fileArguments, file.Location, outputFile);
-
-            // Hide console window
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
-            startInfo.CreateNoWindow = true;
-
-            //console.WriteLine (Path.GetFileNameWithoutExtension(startInfo.FileName) + " " + startInfo.Arguments);
-
-            using (var process = Process.Start(startInfo))
-            {
-                process.OutputDataReceived += (sender, e) =>
+                if (file.Language == Language.Cpp)
                 {
-                    console.WriteLine(e.Data);
-                };
+                    fileArguments = "-x c++ -std=c++14 -fno-use-cxa-atexit";
+                }
 
-                process.ErrorDataReceived += (sender, e) =>
+                startInfo.Arguments = string.Format("{0} {1} {2} -o{3} -MMD -MP", GetCompilerArguments(superProject, project, file.Language), fileArguments, file.Location, outputFile);
+
+                // Hide console window
+                startInfo.UseShellExecute = false;
+                startInfo.RedirectStandardOutput = true;
+                startInfo.RedirectStandardError = true;
+                startInfo.CreateNoWindow = true;
+
+                //console.WriteLine (Path.GetFileNameWithoutExtension(startInfo.FileName) + " " + startInfo.Arguments);
+
+                using (var process = Process.Start(startInfo))
                 {
-                    if (e.Data != null)
+                    process.OutputDataReceived += (sender, e) =>
                     {
-                        console.WriteLine();
                         console.WriteLine(e.Data);
-                    }
-                };
+                    };
 
-                process.BeginOutputReadLine();
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data != null)
+                        {
+                            console.WriteLine();
+                            console.WriteLine(e.Data);
+                        }
+                    };
 
-                process.BeginErrorReadLine();
+                    process.BeginOutputReadLine();
 
-                process.WaitForExit();
+                    process.BeginErrorReadLine();
 
-                result.ExitCode = process.ExitCode;
+                    process.WaitForExit();                    
+
+                    result.ExitCode = process.ExitCode;
+                }                
             }
+
+            return result;
         }
 
         public override LinkResult Link(IConsole console, Project superProject, Project project, CompileResult assemblies, string outputDirectory)
@@ -102,7 +99,7 @@
                 return result;
             }
 
-           // GenerateLinkerScript(project);
+            // GenerateLinkerScript(project);
 
             string objectArguments = string.Empty;
             foreach (string obj in assemblies.ObjectLocations)
@@ -154,7 +151,7 @@
             startInfo.RedirectStandardInput = true;
             startInfo.CreateNoWindow = true;
 
-            startInfo.Arguments = string.Format("{0} -o{1} {2} {3} {4}", GetLinkerArguments(project), executable, objectArguments, linkedLibraries, libs);
+            startInfo.Arguments = string.Format("{0} -o{1} {2} -Wl,--start-group {3} {4} -Wl,--end-group", GetLinkerArguments(project), executable, objectArguments, linkedLibraries, libs);
 
             if (project.Type == ProjectType.StaticLibrary)
             {
@@ -284,8 +281,8 @@
             foreach (var arg in project.ToolChainArguments)
             {
                 result += string.Format(" {0}", arg);
-            }    
-                        
+            }
+
             result += string.Format(" -L{0} -Wl,-T\"{1}\"", project.Directory, project.LinkerScript);
 
             return result;
@@ -302,7 +299,7 @@
             // Referenced includes
             var referencedIncludes = project.GetReferencedIncludes();
 
-            foreach(var include in referencedIncludes)
+            foreach (var include in referencedIncludes)
             {
                 result += string.Format("-I\"{0}\" ", Path.Combine(project.Directory, include));
             }
@@ -316,7 +313,7 @@
             // includes
 
 
-            foreach(var define in superProject.Defines)
+            foreach (var define in superProject.Defines)
             {
                 result += string.Format("-D{0} ", define);
             }
@@ -329,8 +326,8 @@
             foreach (var arg in superProject.CompilerArguments)
             {
                 result += string.Format(" {0}", arg);
-            }        
-            
+            }
+
             switch (language)
             {
                 case Language.C:

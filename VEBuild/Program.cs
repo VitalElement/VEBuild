@@ -20,7 +20,7 @@
             gccSettings.IncludePaths.Add("arm-none-eabi\\include\\c++\\4.9.3\\arm-none-eabi\\thumb");
             gccSettings.IncludePaths.Add("lib\\gcc\\arm-none-eabi\\4.9.3\\include");
 
-            var toolchain = new GCCToolChain(gccSettings);
+            var toolchain = new FastGccToolChain(gccSettings);
             var console = new ProgramConsole();
             var project = solution.LoadedProjects[0];
             var awaiter = toolchain.Clean(console, project);

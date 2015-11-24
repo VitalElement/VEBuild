@@ -10,7 +10,7 @@
             Console.Clear();
         }
 
-        public void OverWrite(string data)
+        public async void OverWrite(string data)
         {
             int currentLineCursor = Console.CursorTop;
             Console.SetCursorPosition(0, Console.CursorTop);

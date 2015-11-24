@@ -49,6 +49,7 @@ namespace VEBuild.Models
             ExecutableLocations = new List<string>();
         }
 
+        public Project Project { get; set; }
         public List<string> ObjectLocations { get; set; }
         public List<string> LibraryLocations { get; set; }
         public List<string> ExecutableLocations { get; set; }

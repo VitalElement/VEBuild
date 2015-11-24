@@ -16,6 +16,9 @@
 
     public class Project : SerializedObject<Project>
     {
+        [JsonIgnore]
+        public bool IsBuilding { get; set; }
+
         public static Project Load(string filename, Solution solution)
         {
             var project = Deserialize(filename);
