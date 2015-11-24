@@ -92,19 +92,19 @@ namespace VEBuild.Models
             {
                 var loadedReference = project.GetReference(reference);
 
-                result = await CompileProject(console, project, loadedReference, compiledReferences);
+                await CompileProject(console, project, loadedReference, compiledReferences);
 
-                if(!result)
+                if(terminateBuild)
                 {
                     break;
                 }
             }
 
-            if (result)
+            if (!terminateBuild)
             {
-                result = await CompileProject(console, project, project, compiledProject);
+                await CompileProject(console, project, project, compiledProject);
 
-                if (result)
+                if (!terminateBuild)
                 {
                     await WaitForCompileJobs();
                     
@@ -210,10 +210,8 @@ namespace VEBuild.Models
             }
         }
 
-        private async Task<bool> CompileProject(IConsole console, Project superProject, Project project, List<CompileResult> results = null)
+        private async Task CompileProject(IConsole console, Project superProject, Project project, List<CompileResult> results = null)
         {
-            bool result = true;
-
             if (!terminateBuild)
             {
                 if (results == null)
@@ -234,8 +232,7 @@ namespace VEBuild.Models
                 {
                     Directory.CreateDirectory(outputDirectory);
                 }
-
-                string lockFile = Path.Combine(project.GetOutputDirectory(superProject), project.Name + ".lock");
+                
                 bool doWork = false;
 
                 lock (resultLock)
@@ -265,7 +262,7 @@ namespace VEBuild.Models
 
                     foreach (var file in project.SourceFiles)
                     {
-                        if (!result)
+                        if (terminateBuild)
                         {
                             break;
                         }
@@ -322,15 +319,9 @@ namespace VEBuild.Models
                                             terminateBuild = true;
                                             compileResults.ExitCode = compileResult.ExitCode;
                                         }
-
-                                        if (compileResult.ExitCode == 0)
-                                        {
-                                            compileResults.ObjectLocations.Add(objectFile);
-
-                                        }
                                         else
                                         {
-                                            result = false;
+                                            compileResults.ObjectLocations.Add(objectFile);
                                         }
 
                                         numTasks--;
@@ -347,7 +338,6 @@ namespace VEBuild.Models
                     }
                 }
             }
-            return result;
         }
 
         public override async Task Clean(IConsole console, Project project)
