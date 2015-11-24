@@ -63,7 +63,11 @@
 
                 process.ErrorDataReceived += (sender, e) =>
                 {
-                    console.WriteLine(e.Data);
+                    if (e.Data != null)
+                    {
+                        console.WriteLine();
+                        console.WriteLine(e.Data);
+                    }
                 };
 
                 process.BeginOutputReadLine();
