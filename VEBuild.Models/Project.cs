@@ -84,15 +84,68 @@
         public string Name { get; set; }       
         public List<Language> Languages { get; set; }
         public ProjectType Type { get; set; }
+
+
+        public bool ShouldSerializeReferences()
+        {
+            return References.Count > 0;
+        }
+
         public List<string> References { get; set; }
+
+        public bool ShouldSerializePublicIncludes()
+        {
+            return PublicIncludes.Count > 0;
+        }
+
         public List<string> PublicIncludes { get; set; }
+
+        public bool ShouldSerializeIncludes()
+        {
+            return Includes.Count > 0;
+        }
+
         public List<string> Includes { get; set; }
-        public List<SourceFile> SourceFiles { get; set; }      
+
+        public bool ShouldSerializeFiles()
+        {
+            return SourceFiles.Count > 0;
+        }
+        public List<SourceFile> SourceFiles { get; set; }
+
+        public bool ShouldSerializeCompilerArguments()
+        {
+            return CompilerArguments.Count > 0;
+        }
+
         public List<string> CompilerArguments { get; set; }
+
+        public bool ShouldSerializeCCompilerArguments()
+        {
+            return CCompilerArguments.Count > 0;
+        }
+
         public List<string> CCompilerArguments { get; set; }
+
+        public bool ShouldSerializeCppCompilerArguments()
+        {
+            return CppCompilerArguments.Count > 0;
+        }
+
         public List<string> CppCompilerArguments { get; set; }
+
+        public bool ShouldSerializeToolChainArguments()
+        {
+            return ToolChainArguments.Count > 0;
+        }
         public List<string> ToolChainArguments { get; set; }
+
+        public bool ShouldSerializeBuiltinLibraries()
+        {
+            return BuiltinLibraries.Count > 0;
+        }
         public List<string> BuiltinLibraries { get; set; }
+
         public string BuildDirectory { get; set; }
         public string LinkerScript { get; set; }
 

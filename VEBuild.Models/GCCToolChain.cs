@@ -169,7 +169,10 @@
 
                 process.ErrorDataReceived += (sender, e) =>
                 {
-                    console.WriteLine(e.Data);
+                    if (e.Data != null && !e.Data.Contains("creating"))
+                    {
+                        console.WriteLine(e.Data);
+                    }
                 };
 
                 process.BeginOutputReadLine();

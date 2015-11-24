@@ -201,7 +201,7 @@
 
             if (!File.Exists(executable) || compilationResults.NumberOfObjectsCompiled > 0)
             {
-                console.WriteLine(string.Format("[LL]    [{0}]", project.Name));
+                console.OverWrite(string.Format("[LL]    [{0}]", project.Name));
 
                 var linkResults = Link(console, superProject, project, compilationResults, outputLocation);
 
@@ -213,6 +213,7 @@
                     }
                     else
                     {
+                        console.WriteLine();
                         Size(console, project, linkResults);
                         result.ExecutableLocations.Add(executable);
                     }
@@ -223,8 +224,6 @@
                 {                    
                     result.ExitCode = -1;
                 }
-
-                console.WriteLine();
             }
             else
             {
@@ -239,6 +238,7 @@
 
                 if (superProject == project)
                 {
+                    console.WriteLine();
                     Size(console, project, new LinkResult() { Executable = executable });
                     console.WriteLine();
                 }
@@ -410,7 +410,7 @@
                                 compileJobs++;
                             }
 
-                            console.WriteLine(string.Format("[CC]    [{0}]    {1}", project.Name, Path.GetFileName(file.Location)));
+                            console.OverWrite(string.Format("[CC]    [{0}]    {1}", project.Name, Path.GetFileName(file.Location)));                            
 
                             new Thread(() =>
                             {
