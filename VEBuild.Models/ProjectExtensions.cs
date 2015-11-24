@@ -7,14 +7,29 @@ namespace VEBuild.Models
     {
         public static string GetOutputDirectory(this Project project, Project superProject)
         {
-            string outputDirectory = Path.Combine(superProject.Directory, "obj");
+            string outputDirectory = superProject.Directory;
 
+            if (!string.IsNullOrEmpty(superProject.BuildDirectory))
+            {
+                outputDirectory = Path.Combine(superProject.Directory, superProject.BuildDirectory);
+            }
+            
             if (project != superProject)
             {
                 outputDirectory = Path.Combine(outputDirectory, project.Name);
             }
 
             return outputDirectory;
+        }
+
+        public static string GetObjectDirectory (this Project project, Project superProject)
+        {
+            return Path.Combine(project.GetOutputDirectory(superProject), "obj");
+        }
+
+        public static string GetBinDirectory (this Project project, Project superProject)
+        {
+            return Path.Combine(project.GetOutputDirectory(superProject), "bin");
         }
 
         public static List<string> GetDependencies(string dependencyFile)

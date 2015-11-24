@@ -93,6 +93,7 @@
         public List<string> CppCompilerArguments { get; set; }
         public List<string> ToolChainArguments { get; set; }
         public List<string> BuiltinLibraries { get; set; }
+        public string BuildDirectory { get; set; }
         public string LinkerScript { get; set; }
 
     }

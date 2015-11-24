@@ -166,14 +166,21 @@
 
             string outputLocation = string.Empty;
 
-            if (project.Type == ProjectType.StaticLibrary)
+            var objDirectory = project.GetObjectDirectory(superProject);
+
+            if(!Directory.Exists(objDirectory))
             {
-                outputLocation = Path.Combine(superProject.Directory, "obj");
+                Directory.CreateDirectory(objDirectory);
             }
-            else
+
+            var binDirectory = project.GetBinDirectory(superProject);
+
+            if(!Directory.Exists(binDirectory))
             {
-                outputLocation = Path.Combine(superProject.Directory, "bin");
+                Directory.CreateDirectory(binDirectory);
             }
+
+            outputLocation = binDirectory;            
 
             string executable = Path.Combine(outputLocation, project.Name);
 
@@ -357,6 +364,13 @@
                     Directory.CreateDirectory(outputDirectory);
                 }
 
+                var objDirectory = project.GetObjectDirectory(superProject);
+
+                if (!Directory.Exists(objDirectory))
+                {
+                    Directory.CreateDirectory(objDirectory);
+                }
+
                 Semaphore compileThread = new Semaphore(16, 16);
                 int compileJobs = 0;
                 object compileJobsLock = new object();
@@ -367,8 +381,8 @@
                     if (Path.GetExtension(file.Location) == ".c" || Path.GetExtension(file.Location) == ".cpp")
                     {
                         var outputName = Path.GetFileNameWithoutExtension(file.Location) + ".o";
-                        var dependencyFile = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(file.Location) + ".d");
-                        var objectFile = Path.Combine(outputDirectory, outputName);
+                        var dependencyFile = Path.Combine(objDirectory, Path.GetFileNameWithoutExtension(file.Location) + ".d");
+                        var objectFile = Path.Combine(objDirectory, outputName);
 
                         bool dependencyChanged = false;
                         object resultLock = new object();
@@ -500,65 +514,19 @@
             }
         }
 
-        private async Task CleanAll(IConsole console, Project project)
-        {
-            foreach (var reference in project.References)
-            {
-                var loadedReference = project.GetReference(reference);
-
-                if (loadedReference == null)
-                {
-                    throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference, project.Solution.Location));
-                }
-
-                await CleanAll(console, loadedReference);
-            }
-
-            string outputDirectory = Path.Combine(project.Directory, "obj");
-
-            bool hasCleaned = false;
-
-            if (Directory.Exists(outputDirectory))
-            {
-                hasCleaned = true;
-
-                try
-                {
-                    Directory.Delete(outputDirectory, true);
-                }
-                catch (Exception)
-                {
-
-                }
-            }
-
-            outputDirectory = Path.Combine(project.Directory, "bin");
-
-            if (Directory.Exists(outputDirectory))
-            {
-                hasCleaned = true;
-
-                try
-                {
-                    Directory.Delete(outputDirectory, true);
-                }
-                catch (Exception)
-                {
-
-                }
-            }
-
-            if (hasCleaned)
-            {
-                console.WriteLine(string.Format("[BB] - Cleaning Project - {0}", project.Name));
-            }
-        }
-
+       
         public override async Task Clean(IConsole console, Project project)
         {
             console.Clear();
             console.WriteLine("Starting Clean...");
-            await CleanAll(console, project);
+
+            var outputDir = project.GetOutputDirectory(project);
+
+            if(Directory.Exists(outputDir))
+            {
+                Directory.Delete(outputDir, true);
+            }
+
             console.WriteLine("Clean Completed.");
         }
     }

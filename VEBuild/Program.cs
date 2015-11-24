@@ -108,6 +108,8 @@
 
             project.LinkerScript = "link.ld";
 
+            project.BuildDirectory = "build";
+
             projectDir = Path.Combine(baseDir, project.Name);
 
             if (!Directory.Exists(projectDir))
