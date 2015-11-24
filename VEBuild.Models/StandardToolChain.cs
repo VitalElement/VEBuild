@@ -517,17 +517,20 @@
        
         public override async Task Clean(IConsole console, Project project)
         {
-            console.Clear();
-            console.WriteLine("Starting Clean...");
-
-            var outputDir = project.GetOutputDirectory(project);
-
-            if(Directory.Exists(outputDir))
+            await Task.Factory.StartNew(() =>
             {
-                Directory.Delete(outputDir, true);
-            }
+                console.Clear();
+                console.WriteLine("Starting Clean...");
 
-            console.WriteLine("Clean Completed.");
+                var outputDir = project.GetOutputDirectory(project);
+
+                if (Directory.Exists(outputDir))
+                {
+                    Directory.Delete(outputDir, true);
+                }
+
+                console.WriteLine("Clean Completed.");
+            });            
         }
     }
 }
