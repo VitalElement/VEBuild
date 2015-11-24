@@ -2,6 +2,7 @@
 {
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
+    using System;
     using System.Collections.Generic;
     using System.IO;
 
@@ -15,14 +16,14 @@
 
     public class Project : SerializedObject<Project>
     {
-        public static Project Load (string filename, Solution solution)
+        public static Project Load(string filename, Solution solution)
         {
             var project = Deserialize(filename);
 
             project.Location = filename;
             project.SetSolution(solution);
 
-            foreach(var file in project.SourceFiles)
+            foreach (var file in project.SourceFiles)
             {
                 file.SetProject(project);
             }
@@ -46,9 +47,42 @@
 
         }
 
-        public void SetSolution (Solution solution)
+        public void SetSolution(Solution solution)
         {
             this.Solution = solution;
+        }
+
+        protected List<string> GenerateReferenceIncludes()
+        {
+            List<string> result = new List<string>();
+
+            foreach (var reference in References)
+            {
+                var loadedReference = GetReference(reference);
+
+                result.AddRange(loadedReference.GenerateReferenceIncludes());
+            }
+
+            foreach (var includePath in PublicIncludes)
+            {
+                result.Add(Path.Combine(Directory, includePath));
+            }
+
+            return result;
+        }
+
+        public List<string> GetReferencedIncludes()
+        {
+            List<string> result = new List<string>();
+
+            foreach (var reference in References)
+            {
+                var loadedReference = GetReference(reference);
+
+                result.AddRange(loadedReference.GenerateReferenceIncludes());
+            }
+
+            return result;
         }
 
         [JsonIgnore]
@@ -66,23 +100,28 @@
         [JsonIgnore]
         public string Location { get; private set; }
 
-        public Project GetReference (string reference)
+        public Project GetReference(string reference)
         {
             Project result = null;
 
-            foreach(var project in Solution.LoadedProjects)
+            foreach (var project in Solution.LoadedProjects)
             {
-                if(project.Name == reference)
+                if (project.Name == reference)
                 {
                     result = project;
                     break;
                 }
             }
 
+            if (result == null)
+            {
+                throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference, Solution.Location));
+            }
+
             return result;
         }
 
-        public string Name { get; set; }       
+        public string Name { get; set; }
         public List<Language> Languages { get; set; }
         public ProjectType Type { get; set; }
 

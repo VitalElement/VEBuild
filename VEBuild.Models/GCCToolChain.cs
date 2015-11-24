@@ -150,7 +150,7 @@
             startInfo.RedirectStandardInput = true;
             startInfo.CreateNoWindow = true;
 
-            startInfo.Arguments = string.Format("{0} -o{1} {2} {3} {4}", GetLinkerArguments(project), executable, objectArguments, linkedLibraries, libs);
+            startInfo.Arguments = string.Format("{0} -o{1} {2} -Wl,--start-group {3} {4} -Wl,--end-group", GetLinkerArguments(project), executable, objectArguments, linkedLibraries, libs);
 
             if (project.Type == ProjectType.StaticLibrary)
             {
@@ -296,6 +296,12 @@
             // toolchain includes
 
             // Referenced includes
+            var referencedIncludes = project.GetReferencedIncludes();
+
+            foreach(var include in referencedIncludes)
+            {
+                result += string.Format("-I\"{0}\" ", Path.Combine(project.Directory, include));
+            }
 
             // public includes
             foreach (var include in project.PublicIncludes)
@@ -306,7 +312,7 @@
             // includes
 
 
-            foreach(var define in project.Defines)
+            foreach(var define in superProject.Defines)
             {
                 result += string.Format("-D{0} ", define);
             }

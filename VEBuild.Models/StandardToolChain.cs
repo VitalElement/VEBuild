@@ -76,11 +76,6 @@
             {
                 var loadedReference = project.GetReference(reference);
 
-                if(loadedReference == null)
-                {
-                    throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference, project.Solution.Location));
-                }
-
                 if (loadedReference.Type == ProjectType.StaticLibrary)
                 {
                     var referenceResult = await BuildLibrary(console, project, loadedReference);
@@ -257,11 +252,6 @@
             {
                 var loadedReference = project.GetReference(reference);
 
-                if (loadedReference == null)
-                {
-                    throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference, project.Solution.Location));
-                }
-
 
                 if (loadedReference.Type == ProjectType.StaticLibrary)
                 {
@@ -371,7 +361,7 @@
                     Directory.CreateDirectory(objDirectory);
                 }
 
-                Semaphore compileThread = new Semaphore(16, 16);
+                Semaphore compileThread = new Semaphore(32, 32);
                 int compileJobs = 0;
                 object compileJobsLock = new object();
 
@@ -468,11 +458,6 @@
             foreach (var reference in project.References)
             {
                 var loadedReference = project.GetReference(reference);
-
-                if (loadedReference == null)
-                {
-                    throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference, project.Solution.Location));
-                }
 
                 var result = await BuildReference(console, superProject, loadedReference);
 

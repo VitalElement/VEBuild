@@ -22,7 +22,7 @@
 
             var toolchain = new GCCToolChain(gccSettings);
             var console = new ProgramConsole();
-            var project = solution.LoadedProjects[2];
+            var project = solution.LoadedProjects[0];
             var awaiter = toolchain.Clean(console, project);
             awaiter.Wait();
 
@@ -42,9 +42,16 @@
             var solution = new Solution();
 
             solution.Name = "UHLD";
+            solution.Projects.Add(new ProjectDescription() { Name = "STM32DiscoveryBootloader" });
             solution.Projects.Add(new ProjectDescription() { Name = "ArmSystem" });
             solution.Projects.Add(new ProjectDescription() { Name = "STM32F4Cube" });
-            solution.Projects.Add(new ProjectDescription() { Name = "STM32DiscoveryBootloader" });
+            solution.Projects.Add(new ProjectDescription() { Name = "IntegratedDebugProtocol" });
+            solution.Projects.Add(new ProjectDescription() { Name = "CommonHal" });            
+            solution.Projects.Add(new ProjectDescription() { Name = "GxBootloader" });
+            solution.Projects.Add(new ProjectDescription() { Name = "STM32HalPlatform" });
+            solution.Projects.Add(new ProjectDescription() { Name = "Utils" });
+            solution.Projects.Add(new ProjectDescription() { Name = "Dispatcher" });
+            solution.Projects.Add(new ProjectDescription() { Name = "GxInstrumentationHidDevice" });
 
             string solutionFile = Path.Combine(baseDir, string.Format("{0}.{1}", solution.Name, Solution.solutionExtension));
             solution.Serialize(solutionFile);
@@ -87,10 +94,7 @@
             project.PublicIncludes.Add("./Drivers/STM32F4xx_HAL_Driver/Inc");
             project.PublicIncludes.Add("Middlewares/ST/STM32_USB_Device_Library/Core/Inc");
             project.PublicIncludes.Add("Drivers/CMSIS/Device/ST/STM32F4xx/Include");
-            project.PublicIncludes.Add("Drivers/CMSIS/Include");
-
-            project.Defines.Add("__FPU_USED");
-            project.Defines.Add("STM32F407xx");
+            project.PublicIncludes.Add("Drivers/CMSIS/Include");            
 
             project.SourceFiles.Add(new SourceFile { File = "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c" });
             project.SourceFiles.Add(new SourceFile { File = "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c" });
@@ -175,6 +179,195 @@
 
             project = new Project();
 
+            project.Name = "IntegratedDebugProtocol";            
+            project.Languages.Add(Language.Cpp);
+
+            project.Type = ProjectType.StaticLibrary;
+
+            project.PublicIncludes.Add("./");
+
+            project.SourceFiles.Add(new SourceFile { File = "IDP.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "IDPPacket.cpp" });
+
+            project.References.Add("Utils");
+
+            projectDir = Path.Combine(baseDir, project.Name);
+
+            if (!Directory.Exists(projectDir))
+            {
+                Directory.CreateDirectory(projectDir);
+            }
+
+            projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
+            project.Serialize(projectFile);
+
+            project = new Project();
+
+            project.Name = "CommonHal";
+            project.Languages.Add(Language.Cpp);
+
+            project.Type = ProjectType.StaticLibrary;
+
+            project.PublicIncludes.Add("./");
+
+            project.References.Add("Utils");
+
+            project.SourceFiles.Add(new SourceFile { File = "II2C.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "Interrupt.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "IPort.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "ISpi.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "IUsbHidDevice.cpp" });
+            //project.SourceFiles.Add(new SourceFile { File = "SerialPort.cpp" });
+
+            projectDir = Path.Combine(baseDir, project.Name);
+
+            if (!Directory.Exists(projectDir))
+            {
+                Directory.CreateDirectory(projectDir);
+            }
+
+            projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
+            project.Serialize(projectFile);
+
+            project = new Project();
+
+            project.Name = "STM32HalPlatform";
+            project.Languages.Add(Language.Cpp);
+            project.Languages.Add(Language.C);
+
+            project.Type = ProjectType.StaticLibrary;
+
+            project.PublicIncludes.Add("./");
+            project.PublicIncludes.Add("./USB");
+
+            project.SourceFiles.Add(new SourceFile { File = "SignalGeneration/STM32FrequencyChannel.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "SignalGeneration/STM32PwmChannel.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "USB/CustomHID/usb_device.c" });
+            project.SourceFiles.Add(new SourceFile { File = "USB/CustomHID/usbd_conf.c" });
+            project.SourceFiles.Add(new SourceFile { File = "USB/CustomHID/usbd_customhid.c" });
+            project.SourceFiles.Add(new SourceFile { File = "USB/CustomHID/usbd_desc.c" });
+            project.SourceFiles.Add(new SourceFile { File = "USB/STM32UsbHidDevice.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "STM32Adc.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "STM32BootloaderService.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "STM32InputCaptureChannel.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "STM32QuadratureEncoder.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "STM32Timer.cpp" });            
+
+            project.References.Add("CommonHal");
+            project.References.Add("STM32F4Cube");
+            project.References.Add("Utils");
+
+            projectDir = Path.Combine(baseDir, project.Name);
+
+            if (!Directory.Exists(projectDir))
+            {
+                Directory.CreateDirectory(projectDir);
+            }
+
+            projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
+            project.Serialize(projectFile);
+
+            project = new Project();
+
+            project.Name = "Utils";
+            project.Languages.Add(Language.Cpp);
+
+            project.Type = ProjectType.StaticLibrary;
+
+            project.PublicIncludes.Add("./");
+
+            project.SourceFiles.Add(new SourceFile { File = "CRC.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "Event.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "PidController.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "StraightLineFormula.cpp" });
+
+            projectDir = Path.Combine(baseDir, project.Name);
+
+            if (!Directory.Exists(projectDir))
+            {
+                Directory.CreateDirectory(projectDir);
+            }
+
+            projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
+            project.Serialize(projectFile);
+
+            project = new Project();
+
+            project.Name = "GxInstrumentationHidDevice";
+            project.Languages.Add(Language.Cpp);
+
+            project.Type = ProjectType.StaticLibrary;
+
+            project.PublicIncludes.Add("./");
+
+            project.SourceFiles.Add(new SourceFile { File = "GxInstrumentationHidDevice.cpp" });
+
+            project.References.Add("CommonHal");
+            project.References.Add("IntegratedDebugProtocol");
+            project.References.Add("STM32F4Cube");
+
+            projectDir = Path.Combine(baseDir, project.Name);
+
+            if (!Directory.Exists(projectDir))
+            {
+                Directory.CreateDirectory(projectDir);
+            }
+
+            projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
+            project.Serialize(projectFile);
+
+            project = new Project();
+
+            project.Name = "Dispatcher";
+            project.Languages.Add(Language.Cpp);
+
+            project.Type = ProjectType.StaticLibrary;
+
+            project.PublicIncludes.Add("./");
+
+            project.SourceFiles.Add(new SourceFile { File = "Dispatcher.cpp" });
+
+            project.References.Add("Utils");
+
+            projectDir = Path.Combine(baseDir, project.Name);
+
+            if (!Directory.Exists(projectDir))
+            {
+                Directory.CreateDirectory(projectDir);
+            }
+
+            projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
+            project.Serialize(projectFile);
+
+            project = new Project();
+
+            project.Name = "GxBootloader";
+            project.Languages.Add(Language.Cpp);
+
+            project.Type = ProjectType.StaticLibrary;
+
+            project.PublicIncludes.Add("./");
+
+            project.SourceFiles.Add(new SourceFile { File = "GxBootloader.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "GxBootloaderHidDevice.cpp" });
+
+            project.References.Add("IntegratedDebugProtocol");
+            project.References.Add("Utils");
+            project.References.Add("GxInstrumentationHidDevice");
+            project.References.Add("Dispatcher");
+
+            projectDir = Path.Combine(baseDir, project.Name);
+
+            if (!Directory.Exists(projectDir))
+            {
+                Directory.CreateDirectory(projectDir);
+            }
+
+            projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
+            project.Serialize(projectFile);
+
+            project = new Project();
+
             project.Name = "STM32DiscoveryBootloader";
             project.Languages.Add(Language.C);
             project.Languages.Add(Language.Cpp);
@@ -184,28 +377,37 @@
             project.Includes.Add("./");
 
             project.References.Add("ArmSystem");
+            project.References.Add("CommonHal");
+            project.References.Add("GxBootloader");
             project.References.Add("STM32F4Cube");
+            project.References.Add("STM32HalPlatform");
 
             project.SourceFiles.Add(new SourceFile { File = "startup_stm32f40xx.c" });
             project.SourceFiles.Add(new SourceFile { File = "main.cpp" });
-            //project.SourceFiles.Add(new SourceFile { File = "Startup.cpp" });
-            //project.SourceFiles.Add(new SourceFile { File = "CPPSupport.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "Startup.cpp" });
+            project.SourceFiles.Add(new SourceFile { File = "DiscoveryBoard.cpp" });
 
             project.ToolChainArguments.Add("-mcpu=cortex-m4");
             project.ToolChainArguments.Add("-mthumb");
             project.ToolChainArguments.Add("-mfpu=fpv4-sp-d16");
             project.ToolChainArguments.Add("-mfloat-abi=hard");
+            
+            project.ToolChainArguments.Add("-fno-exceptions");
+
             project.CompilerArguments.Add("-ffunction-sections");
             project.CompilerArguments.Add("-fdata-sections");
             project.CompilerArguments.Add("-Wno-unknown-pragmas");
 
             project.CppCompilerArguments.Add("-fno-rtti");
-            project.CppCompilerArguments.Add("-fno-exceptions");
+
 
             project.BuiltinLibraries.Add("m");
             project.BuiltinLibraries.Add("c_nano");
             project.BuiltinLibraries.Add("supc++_nano");
             project.BuiltinLibraries.Add("stdc++_nano");
+
+            project.Defines.Add("__FPU_USED");
+            project.Defines.Add("STM32F407xx");
 
             project.LinkerScript = "link.ld";
 
