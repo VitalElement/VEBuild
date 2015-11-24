@@ -79,6 +79,9 @@ namespace VEBuild.Models
 
         public override async Task<bool> Build(IConsole console, Project project)
         {
+            console.Clear();
+            console.WriteLine("Starting Build...");
+
             bool result = true;
             terminateBuild = false;
 
@@ -296,7 +299,7 @@ namespace VEBuild.Models
 
                             if (dependencyChanged || !File.Exists(objectFile))
                             {
-                                while (numTasks >= 32)
+                                while (numTasks >= 16)
                                 {
                                     Thread.Yield();
                                 }

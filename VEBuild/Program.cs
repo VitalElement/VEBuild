@@ -24,10 +24,17 @@
             var console = new ProgramConsole();
             var project = solution.LoadedProjects[0];
             var awaiter = toolchain.Clean(console, project);
+            
             awaiter.Wait();
+
+            var stopWatch = new System.Diagnostics.Stopwatch();
+            stopWatch.Start();
 
             awaiter = toolchain.Build(console, project);
             awaiter.Wait();
+
+            stopWatch.Stop();
+            console.WriteLine(stopWatch.Elapsed.ToString());
 
             Console.ReadKey();
         }
