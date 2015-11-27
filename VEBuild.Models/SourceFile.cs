@@ -18,7 +18,7 @@ namespace VEBuild.Models
         {
             get
             {
-                return Path.Combine(Project.Directory, File);
+                return Path.Combine(Project.CurrentDirectory, File);
             }
         }
 

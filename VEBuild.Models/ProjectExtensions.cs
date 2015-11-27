@@ -5,18 +5,19 @@ namespace VEBuild.Models
 {
     public static class ProjectExtensions
     {
+
         public static string GetOutputDirectory(this Project project, Project superProject)
         {
             string outputDirectory = string.Empty;
 
             if(string.IsNullOrEmpty (superProject.BuildDirectory))
             {
-                outputDirectory = Path.Combine(superProject.Directory, "build");
+                outputDirectory = Path.Combine(superProject.CurrentDirectory, "build");
             }
 
             if (!string.IsNullOrEmpty(superProject.BuildDirectory))
             {
-                outputDirectory = Path.Combine(superProject.Directory, superProject.BuildDirectory);
+                outputDirectory = Path.Combine(superProject.CurrentDirectory, superProject.BuildDirectory);
             }
             
             if (project != superProject)

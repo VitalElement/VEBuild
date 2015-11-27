@@ -5,6 +5,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using LibGit2Sharp;
 
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ProjectType
@@ -37,7 +38,7 @@
         public Project()
         {
             Languages = new List<Language>();
-            References = new List<string>();
+            References = new List<Reference>();
             PublicIncludes = new List<string>();
             Includes = new List<string>();
             SourceFiles = new List<SourceFile>();
@@ -50,9 +51,57 @@
 
         }
 
+        /// <summary>
+        /// Resolves each reference, cloning and updating Git referenced projects where possible.
+        /// </summary>
+        public void ResolveReferences (IConsole console)
+        {
+            foreach (var reference in References)
+            {
+                if (!string.IsNullOrEmpty(reference.GitUrl))
+                {
+                    var referenceDirectory = Path.Combine(SolutionDirectory, reference.Name);
+
+                    if(!Directory.Exists (referenceDirectory))
+                    {
+                        var options = new CloneOptions();
+                        options.OnProgress = (serveroutput) =>
+                        {
+                            console.OverWrite(serveroutput);
+                            return true;
+                        };  
+
+                        options.CredentialsProvider = (url, user, cred) => new UsernamePasswordCredentials() { Username = "dan@walms.co.uk", Password = "****" };
+
+                        console.WriteLine(string.Format("Cloning Reference {0}", reference.Name));
+                        var clone = Repository.Clone(reference.GitUrl, referenceDirectory, options);
+
+
+                    }
+                    //else if(Repository.IsValid(referenceDirectory))
+                    //{
+
+                    //}                    
+                    //else
+                    //{
+                    //    throw new Exception(string.Format("Trying to resolve reference {0}, but there is already a directory with that name. {1}", reference.Name, referenceDirectory));
+                    //}
+                }
+            }              
+        }
+
         public void SetSolution(Solution solution)
         {
             this.Solution = solution;
+        }
+
+        [JsonIgnore]
+        private string SolutionDirectory
+        {
+            get
+            {
+                return Directory.GetParent(CurrentDirectory).FullName;                
+            }
         }
 
         protected List<string> GenerateReferenceIncludes()
@@ -68,7 +117,7 @@
 
             foreach (var includePath in PublicIncludes)
             {
-                result.Add(Path.Combine(Directory, includePath));
+                result.Add(Path.Combine(CurrentDirectory, includePath));
             }
 
             return result;
@@ -92,7 +141,7 @@
         public Solution Solution { get; private set; }
 
         [JsonIgnore]
-        public string Directory
+        public string CurrentDirectory
         {
             get
             {
@@ -103,13 +152,13 @@
         [JsonIgnore]
         public string Location { get; private set; }
 
-        public Project GetReference(string reference)
+        public Project GetReference(Reference reference)
         {
             Project result = null;
 
-            foreach (var project in Solution.LoadedProjects)
+            foreach (var project in Solution.Projects)
             {
-                if (project.Name == reference)
+                if (project.Name == reference.Name)
                 {
                     result = project;
                     break;
@@ -118,7 +167,7 @@
 
             if (result == null)
             {
-                throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference, Solution.Location));
+                throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference, Solution.CurrentDirectory));
             }
 
             return result;
@@ -134,7 +183,7 @@
             return References.Count > 0;
         }
 
-        public List<string> References { get; set; }
+        public List<Reference> References { get; set; }
 
         public bool ShouldSerializePublicIncludes()
         {

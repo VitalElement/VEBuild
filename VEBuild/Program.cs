@@ -12,7 +12,7 @@
         {
             GenerateTestProjects();
 
-            var solution = Solution.Load(Path.Combine(baseDir, "UHLD.vsln"));
+            var solution = Solution.Load(baseDir);
 
             var gccSettings = new ToolchainSettings();
             gccSettings.ToolChainLocation = @"c:\vestudio\appdata\repos\GCCToolchain\bin";
@@ -22,13 +22,15 @@
 
             var toolchain = new FastGccToolChain(gccSettings);
             var console = new ProgramConsole();
-            var project = solution.LoadedProjects[0];
+            var project = solution.Projects[6];
             var awaiter = toolchain.Clean(console, project);
             
             awaiter.Wait();
 
             var stopWatch = new System.Diagnostics.Stopwatch();
             stopWatch.Start();
+
+            project.ResolveReferences(console);
 
             awaiter = toolchain.Build(console, project);
             awaiter.Wait();
@@ -44,24 +46,7 @@
             if (!Directory.Exists(baseDir))
             {
                 Directory.CreateDirectory(baseDir);
-            }
-
-            var solution = new Solution();
-
-            solution.Name = "UHLD";
-            solution.Projects.Add(new ProjectDescription() { Name = "STM32DiscoveryBootloader" });
-            solution.Projects.Add(new ProjectDescription() { Name = "ArmSystem" });
-            solution.Projects.Add(new ProjectDescription() { Name = "STM32F4Cube" });
-            solution.Projects.Add(new ProjectDescription() { Name = "IntegratedDebugProtocol" });
-            solution.Projects.Add(new ProjectDescription() { Name = "CommonHal" });            
-            solution.Projects.Add(new ProjectDescription() { Name = "GxBootloader" });
-            solution.Projects.Add(new ProjectDescription() { Name = "STM32HalPlatform" });
-            solution.Projects.Add(new ProjectDescription() { Name = "Utils" });
-            solution.Projects.Add(new ProjectDescription() { Name = "Dispatcher" });
-            solution.Projects.Add(new ProjectDescription() { Name = "GxInstrumentationHidDevice" });
-
-            string solutionFile = Path.Combine(baseDir, string.Format("{0}.{1}", solution.Name, Solution.solutionExtension));
-            solution.Serialize(solutionFile);
+            }            
 
             var project = new Project();
 
@@ -80,13 +65,13 @@
 
             var projectDir = Path.Combine(baseDir, project.Name);
 
-            if (!Directory.Exists(projectDir))
-            {
-                Directory.CreateDirectory(projectDir);
-            }
+            //if (!Directory.Exists(projectDir))
+            //{
+            //    Directory.CreateDirectory(projectDir);
+            //}
 
             var projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
-            project.Serialize(projectFile);
+            //project.Serialize(projectFile);
 
             project = new Project();
 
@@ -196,7 +181,7 @@
             project.SourceFiles.Add(new SourceFile { File = "IDP.cpp" });
             project.SourceFiles.Add(new SourceFile { File = "IDPPacket.cpp" });
 
-            project.References.Add("Utils");
+            project.References.Add(new Reference { Name = "Utils" });
 
             projectDir = Path.Combine(baseDir, project.Name);
 
@@ -217,7 +202,7 @@
 
             project.PublicIncludes.Add("./");
 
-            project.References.Add("Utils");
+            project.References.Add(new Reference { Name = "Utils" });
 
             project.SourceFiles.Add(new SourceFile { File = "II2C.cpp" });
             project.SourceFiles.Add(new SourceFile { File = "Interrupt.cpp" });
@@ -260,9 +245,9 @@
             project.SourceFiles.Add(new SourceFile { File = "STM32QuadratureEncoder.cpp" });
             project.SourceFiles.Add(new SourceFile { File = "STM32Timer.cpp" });            
 
-            project.References.Add("CommonHal");
-            project.References.Add("STM32F4Cube");
-            project.References.Add("Utils");
+            project.References.Add(new Reference { Name = "CommonHal" });
+            project.References.Add(new Reference { Name = "STM32F4Cube" });
+            project.References.Add(new Reference { Name = "Utils" });
 
             projectDir = Path.Combine(baseDir, project.Name);
 
@@ -309,9 +294,9 @@
 
             project.SourceFiles.Add(new SourceFile { File = "GxInstrumentationHidDevice.cpp" });
 
-            project.References.Add("CommonHal");
-            project.References.Add("IntegratedDebugProtocol");
-            project.References.Add("STM32F4Cube");
+            project.References.Add(new Reference { Name = "CommonHal" });
+            project.References.Add(new Reference { Name = "IntegratedDebugProtocol" });
+            project.References.Add(new Reference { Name = "STM32F4Cube" });
 
             projectDir = Path.Combine(baseDir, project.Name);
 
@@ -334,7 +319,7 @@
 
             project.SourceFiles.Add(new SourceFile { File = "Dispatcher.cpp" });
 
-            project.References.Add("Utils");
+            project.References.Add(new Reference { Name = "Utils" });
 
             projectDir = Path.Combine(baseDir, project.Name);
 
@@ -358,10 +343,10 @@
             project.SourceFiles.Add(new SourceFile { File = "GxBootloader.cpp" });
             project.SourceFiles.Add(new SourceFile { File = "GxBootloaderHidDevice.cpp" });
 
-            project.References.Add("IntegratedDebugProtocol");
-            project.References.Add("Utils");
-            project.References.Add("GxInstrumentationHidDevice");
-            project.References.Add("Dispatcher");
+            project.References.Add(new Reference { Name = "IntegratedDebugProtocol" });
+            project.References.Add(new Reference { Name = "Utils" });
+            project.References.Add(new Reference { Name = "GxInstrumentationHidDevice" });
+            project.References.Add(new Reference { Name = "Dispatcher" });
 
             projectDir = Path.Combine(baseDir, project.Name);
 
@@ -383,11 +368,11 @@
 
             project.Includes.Add("./");
 
-            project.References.Add("ArmSystem");
-            project.References.Add("CommonHal");
-            project.References.Add("GxBootloader");
-            project.References.Add("STM32F4Cube");
-            project.References.Add("STM32HalPlatform");
+            project.References.Add(new Reference { Name = "ArmSystem", GitUrl= "http://gxgroup.duia.eu/gx/ArmSystem.git", Revision="head" });
+            project.References.Add(new Reference { Name = "CommonHal" });
+            project.References.Add(new Reference { Name = "GxBootloader" });
+            project.References.Add(new Reference { Name = "STM32F4Cube" });
+            project.References.Add(new Reference { Name = "STM32HalPlatform" });
 
             project.SourceFiles.Add(new SourceFile { File = "startup_stm32f40xx.c" });
             project.SourceFiles.Add(new SourceFile { File = "main.cpp" });
@@ -400,6 +385,8 @@
             project.ToolChainArguments.Add("-mfloat-abi=hard");
             
             project.ToolChainArguments.Add("-fno-exceptions");
+            project.ToolChainArguments.Add("-O3");
+            project.ToolChainArguments.Add("-Os");
 
             project.CompilerArguments.Add("-ffunction-sections");
             project.CompilerArguments.Add("-fdata-sections");
@@ -429,9 +416,6 @@
 
             projectFile = Path.Combine(projectDir, string.Format("{0}.{1}", project.Name, Solution.projectExtension));
             project.Serialize(projectFile);
-
-            var deserializedSolution = Solution.Deserialize(solutionFile);
-            var deserializedProject = Project.Deserialize(projectFile);
         }
     }
 }

@@ -22,7 +22,7 @@
 
             startInfo.FileName = Path.Combine(Settings.ToolChainLocation, "arm-none-eabi-gcc.exe");
 
-            startInfo.WorkingDirectory = project.Solution.Directory;
+            startInfo.WorkingDirectory = project.Solution.CurrentDirectory;
 
             if (!File.Exists(startInfo.FileName))
             {
@@ -93,7 +93,7 @@
                 startInfo.FileName = Path.Combine(Settings.ToolChainLocation, "arm-none-eabi-ar.exe");
             }
 
-            startInfo.WorkingDirectory = project.Solution.Directory;
+            startInfo.WorkingDirectory = project.Solution.CurrentDirectory;
 
             if (!File.Exists(startInfo.FileName))
             {
@@ -286,7 +286,7 @@
                 result += string.Format(" {0}", arg);
             }    
                         
-            result += string.Format(" -L{0} -Wl,-T\"{1}\"", project.Directory, project.LinkerScript);
+            result += string.Format(" -L{0} -Wl,-T\"{1}\"", project.CurrentDirectory, project.LinkerScript);
 
             return result;
         }
@@ -304,13 +304,13 @@
 
             foreach(var include in referencedIncludes)
             {
-                result += string.Format("-I\"{0}\" ", Path.Combine(project.Directory, include));
+                result += string.Format("-I\"{0}\" ", Path.Combine(project.CurrentDirectory, include));
             }
 
             // public includes
             foreach (var include in project.PublicIncludes)
             {
-                result += string.Format("-I\"{0}\" ", Path.Combine(project.Directory, include));
+                result += string.Format("-I\"{0}\" ", Path.Combine(project.CurrentDirectory, include));
             }
 
             // includes

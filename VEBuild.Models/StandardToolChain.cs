@@ -99,7 +99,7 @@
                     {
                         foreach (var executable in subResult.ExecutableLocations)
                         {
-                            string outputDirectory = Path.Combine(project.Directory, "bin");
+                            string outputDirectory = Path.Combine(project.CurrentDirectory, "bin");
 
                             string destination = Path.Combine(outputDirectory, Path.GetFileName(executable));
 
@@ -269,7 +269,7 @@
                     {
                         foreach (var executable in subResult.ExecutableLocations)
                         {
-                            string outputDirectory = Path.Combine(project.Directory, "bin");
+                            string outputDirectory = Path.Combine(project.CurrentDirectory, "bin");
 
                             string destination = Path.Combine(outputDirectory, Path.GetFileName(executable));
 
