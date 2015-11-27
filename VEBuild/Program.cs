@@ -10,9 +10,9 @@
 
         static void Main(string[] args)
         {
-            GenerateTestProjects();
+           // GenerateTestProjects();            
 
-            var solution = Solution.Load(baseDir);
+            var solution = Solution.Load(Directory.GetCurrentDirectory());
 
             var gccSettings = new ToolchainSettings();
             gccSettings.ToolChainLocation = @"c:\vestudio\appdata\repos\GCCToolchain\bin";
@@ -22,7 +22,12 @@
 
             var toolchain = new FastGccToolChain(gccSettings);
             var console = new ProgramConsole();
-            var project = solution.Projects[6];
+
+
+            var projectFile = Path.Combine(Directory.GetCurrentDirectory(), args[0], args[0] + "." + Solution.projectExtension);
+            var project = solution.FindProject(args[0]);
+
+
             var awaiter = toolchain.Clean(console, project);
             
             awaiter.Wait();
@@ -368,7 +373,7 @@
 
             project.Includes.Add("./");
 
-            project.References.Add(new Reference { Name = "ArmSystem", GitUrl= "http://gxgroup.duia.eu/gx/ArmSystem.git", Revision="head" });
+            project.References.Add(new Reference { Name = "ArmSystem", GitUrl= "http://gxgroup.duia.eu/gx/ArmSystem.git", Revision="HEAD" });
             project.References.Add(new Reference { Name = "CommonHal" });
             project.References.Add(new Reference { Name = "GxBootloader" });
             project.References.Add(new Reference { Name = "STM32F4Cube" });

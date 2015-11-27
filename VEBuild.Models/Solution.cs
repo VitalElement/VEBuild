@@ -31,14 +31,31 @@
                 {
                     solution.Projects.Add(Project.Load(projectLocation, solution));
 
-                }
-                else
-                {
-                    throw new Exception(string.Format("Unable to find project file {0}", projectLocation));
-                }
+                }                
             }
 
             return solution;
+        }
+
+        public Project FindProject (string name)
+        {
+            Project result = null;
+
+            foreach(var project in Projects)
+            {
+                if(project.Name == name)
+                {
+                    result = project;
+                    break;
+                }
+            }
+
+            if(result == null)
+            {
+                throw new Exception(string.Format("Unable to find project with name {0}", name));
+            }
+
+            return result;
         }
 
         public Solution()

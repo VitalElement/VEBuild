@@ -69,23 +69,41 @@
                         {
                             console.OverWrite(serveroutput);
                             return true;
-                        };  
+                        };
 
-                        options.CredentialsProvider = (url, user, cred) => new UsernamePasswordCredentials() { Username = "dan@walms.co.uk", Password = "****" };
+                        options.OnTransferProgress = (progress) =>
+                        {
+                            console.OverWrite(string.Format("{0} / {1} objects, {2} bytes transferred", progress.ReceivedObjects, progress.TotalObjects, progress.ReceivedBytes));
+                            return true;
+                        };
+
+                        options.CredentialsProvider = (url, user, cred) => new UsernamePasswordCredentials() { Username = "dan@walms.co.uk", Password = "******" };
 
                         console.WriteLine(string.Format("Cloning Reference {0}", reference.Name));
-                        var clone = Repository.Clone(reference.GitUrl, referenceDirectory, options);
 
+                        options.Checkout = false;
 
+                        var repo = new  Repository(Repository.Clone(reference.GitUrl, referenceDirectory, options));
+
+                        string checkout = "HEAD";
+
+                        if (!string.IsNullOrEmpty(reference.Revision))
+                        {
+                            checkout = reference.Revision;
+                        }
+
+                        repo.Checkout(checkout);
+
+                        var projectFile = Path.Combine(referenceDirectory, reference.Name + "." + Solution.projectExtension);
+
+                        if (File.Exists(projectFile))
+                        {
+                            var project = Project.Load(projectFile, Solution);
+                            Solution.Projects.Add(project);
+
+                            project.ResolveReferences(console);
+                        }
                     }
-                    //else if(Repository.IsValid(referenceDirectory))
-                    //{
-
-                    //}                    
-                    //else
-                    //{
-                    //    throw new Exception(string.Format("Trying to resolve reference {0}, but there is already a directory with that name. {1}", reference.Name, referenceDirectory));
-                    //}
                 }
             }              
         }
@@ -167,7 +185,7 @@
 
             if (result == null)
             {
-                throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference, Solution.CurrentDirectory));
+                throw new Exception(string.Format("Unable to find reference {0}, in directory {1}", reference.Name, Solution.CurrentDirectory));
             }
 
             return result;
