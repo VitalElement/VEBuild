@@ -185,7 +185,7 @@ namespace VEBuild.Models
 
             string executable = Path.Combine(outputLocation, compileResult.Project.Name);
 
-            if (compileResult.Project.Type == ProjectType.StaticLib)
+            if (compileResult.Project.Type == ProjectType.StaticLibrary)
             {
                 executable = Path.Combine(outputLocation, "lib" + compileResult.Project.Name);
                 executable += ".a";
@@ -206,7 +206,7 @@ namespace VEBuild.Models
 
             if (linkResult.ExitCode == 0)
             {
-                if (compileResult.Project.Type == ProjectType.StaticLib)
+                if (compileResult.Project.Type == ProjectType.StaticLibrary)
                 {
                     linkResults.LibraryLocations.Add(executable);
                 }

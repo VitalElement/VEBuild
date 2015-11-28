@@ -200,7 +200,7 @@
             project.Languages.Add(Language.C);
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("./");
 
@@ -225,7 +225,7 @@
             project.Languages.Add(Language.C);
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("../STM32DiscoveryBootloader");
             project.PublicIncludes.Add("../STM32HalPlatform/USB/CustomHID");
@@ -320,7 +320,7 @@
             project.Name = "IntegratedDebugProtocol";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("./");
 
@@ -344,7 +344,7 @@
             project.Name = "CommonHal";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("./");
 
@@ -373,7 +373,7 @@
             project.Languages.Add(Language.Cpp);
             project.Languages.Add(Language.C);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("./");
             project.PublicIncludes.Add("./USB");
@@ -410,7 +410,7 @@
             project.Name = "Utils";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("./");
 
@@ -434,7 +434,7 @@
             project.Name = "GxInstrumentationHidDevice";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("./");
 
@@ -459,7 +459,7 @@
             project.Name = "Dispatcher";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("./");
 
@@ -482,7 +482,7 @@
             project.Name = "GxBootloader";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLib;
+            project.Type = ProjectType.StaticLibrary;
 
             project.PublicIncludes.Add("./");
 
@@ -510,7 +510,7 @@
             project.Languages.Add(Language.C);
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.Exe;
+            project.Type = ProjectType.Executable;
 
             project.Includes.Add("./");
 

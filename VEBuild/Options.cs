@@ -60,7 +60,7 @@
     [Verb ("create", HelpText = "Creates new projects.")]
     class CreateOptions : ProjectOption
     {
-        [Option('t', "Type", Required = true, HelpText = "Options are Exe or StaticLib")]
+        [Option('t', "Type", Required = true, HelpText = "Options are Executable or StaticLibrary")]
         public ProjectType IsLib { get; set; }
     }
 }

@@ -42,7 +42,7 @@
             }
             else
             {
-                if (project.Type == ProjectType.StaticLib)
+                if (project.Type == ProjectType.StaticLibrary)
                 {
                     result = (await BuildLibrary(console, project, project)).ExitCode == 0;
                 }
@@ -76,7 +76,7 @@
             {
                 var loadedReference = project.GetReference(reference);
                 
-                if (loadedReference.Type == ProjectType.StaticLib)
+                if (loadedReference.Type == ProjectType.StaticLibrary)
                 {
                     var referenceResult = await BuildLibrary(console, project, loadedReference);
 
@@ -167,7 +167,7 @@
 
             string executable = Path.Combine(outputLocation, project.Name);
 
-            if (project.Type == ProjectType.StaticLib)
+            if (project.Type == ProjectType.StaticLibrary)
             {
                 executable = Path.Combine(outputLocation, "lib" + project.Name);
                 executable += ".a";
@@ -190,7 +190,7 @@
 
                 if (linkResults.ExitCode == 0)
                 {                    
-                    if (project.Type == ProjectType.StaticLib)
+                    if (project.Type == ProjectType.StaticLibrary)
                     {
                         result.LibraryLocations.Add(executable);
                     }
@@ -210,7 +210,7 @@
             }
             else
             {
-                if (project.Type == ProjectType.StaticLib)
+                if (project.Type == ProjectType.StaticLibrary)
                 {
                     result.LibraryLocations.Add(executable);
                 }
@@ -241,7 +241,7 @@
                 var loadedReference = project.GetReference(reference);
 
 
-                if (loadedReference.Type == ProjectType.StaticLib)
+                if (loadedReference.Type == ProjectType.StaticLibrary)
                 {
                     var refResult = await BuildReference(console, superProject, loadedReference);
 

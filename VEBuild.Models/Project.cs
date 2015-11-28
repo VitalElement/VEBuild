@@ -10,9 +10,9 @@
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ProjectType
     {
-        Exe,
-        SharedLib,
-        StaticLib
+        Executable,
+        SharedLibrary,
+        StaticLibrary
     }
 
     public class Project : SerializedObject<Project>
