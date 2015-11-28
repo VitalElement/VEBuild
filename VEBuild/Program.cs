@@ -10,9 +10,45 @@
     {
         const string baseDir = @"c:\development\vebuild\test";
 
+        static Solution LoadSolution(ProjectOption options)
+        {
+            bool inProjectDirectory = false;
+
+            if (string.IsNullOrEmpty(options.Project))
+            {
+                inProjectDirectory = true;
+                options.Project = Path.GetFileNameWithoutExtension(Directory.GetCurrentDirectory());
+            }
+
+            var solutionDirectory = Directory.GetCurrentDirectory();
+
+            if (inProjectDirectory)
+            {
+                solutionDirectory = Directory.GetParent(solutionDirectory).FullName;
+            }
+
+            var solution = Solution.Load(solutionDirectory);
+
+            return solution;
+        }
+
+        static Project FindProject(Solution solution, string project)
+        {
+            try
+            {
+                var result = solution.FindProject(project);
+
+                return result;
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+        }
+
         static int RunBuild(BuildOptions options)
         {
-            var solution = Solution.Load(Directory.GetCurrentDirectory());
+            var solution = LoadSolution(options);
 
             var gccSettings = new ToolchainSettings();
             gccSettings.ToolChainLocation = @"c:\vestudio\appdata\repos\GCCToolchain\bin";
@@ -25,26 +61,32 @@
             toolchain.Jobs = options.Jobs;
             var console = new ProgramConsole();
 
-            var project = solution.FindProject(options.Project);
-            
-            var stopWatch = new System.Diagnostics.Stopwatch();
-            stopWatch.Start();
+            var project = FindProject(solution, options.Project);
 
-            project.ResolveReferences(console);
+            if (project != null)
+            {
+                var stopWatch = new System.Diagnostics.Stopwatch();
+                stopWatch.Start();
 
-            var awaiter = toolchain.Build(console, project);
-            awaiter.Wait();
+                project.ResolveReferences(console);
 
-            stopWatch.Stop();
-            console.WriteLine(stopWatch.Elapsed.ToString());
+                var awaiter = toolchain.Build(console, project);
+                awaiter.Wait();
 
+                stopWatch.Stop();
+                console.WriteLine(stopWatch.Elapsed.ToString());
+            }
+            else
+            {
+                console.WriteLine("Nothing to build.");
+            }
 
             return 1;
         }
 
-        static int RunClean (CleanOptions options)
+        static int RunClean(CleanOptions options)
         {
-            var solution = Solution.Load(Directory.GetCurrentDirectory());
+            var solution = LoadSolution(options);
 
             var gccSettings = new ToolchainSettings();
             gccSettings.ToolChainLocation = @"c:\vestudio\appdata\repos\GCCToolchain\bin";
@@ -53,12 +95,19 @@
             gccSettings.IncludePaths.Add("lib\\gcc\\arm-none-eabi\\4.9.3\\include");
 
             var toolchain = new FastGccToolChain(gccSettings);
-            
+
             var console = new ProgramConsole();
 
-            var project = solution.FindProject(options.Project);
+            var project = FindProject(solution, options.Project);
 
-            toolchain.Clean(console, project).Wait();
+            if (project != null)
+            {
+                toolchain.Clean(console, project).Wait();
+            }
+            else
+            {
+                console.WriteLine("Nothing to clean.");
+            }
 
             return 1;
         }
@@ -69,14 +118,13 @@
         }
 
         static int Main(string[] args)
-        {
-            var result =  Parser.Default.ParseArguments<AddOptions, BuildOptions, CleanOptions>(args).MapResult(
-              (AddOptions opts) => RunAdd(opts),
+        {            
+            var result = Parser.Default.ParseArguments<AddOptions, BuildOptions, CleanOptions>(args).MapResult(
               (BuildOptions opts) => RunBuild(opts),
-              (CleanOptions opts)=>RunClean (opts),
-              errs => 1);
+                (AddOptions opts) => RunAdd(opts),              
+              (CleanOptions opts) => RunClean(opts),
+              errs => 1);            
 
-            Console.ReadKey();
             return result;
         }
 

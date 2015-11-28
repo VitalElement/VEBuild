@@ -17,21 +17,23 @@
         public int Jobs { get; set; }
     }
 
-    [Verb("build", HelpText ="Builds the project in the current directory.")]
-    class BuildOptions
+    abstract class ProjectOption
     {
-        [Value(0, Required =true, MetaName = "Project", HelpText = "Name of project to build")]        
+        [Value(0, MetaName = "Project", HelpText = "Name of project to run command on")]
         public string Project { get; set; }
+    }
+
+    [Verb("build", HelpText ="Builds the project in the current directory.")]
+    class BuildOptions : ProjectOption
+    {
 
         [Option('j', "jobs", Required = false, Default = 1, HelpText = "Number of jobs for compiling.")]
         public int Jobs { get; set; }        
     }
 
     [Verb("clean", HelpText = "Cleans the specified project.")]
-    class CleanOptions
+    class CleanOptions : ProjectOption
     {
-        [Value(0, Required = true, MetaName = "Project", HelpText = "Name of project to clean")]
-        public string Project { get; set; }
     }
 
     [Verb("add", HelpText = "Adds source files to the specified project file.")]
