@@ -106,7 +106,42 @@
                             return true;
                         };
 
-                        options.CredentialsProvider = (url, user, cred) => new UsernamePasswordCredentials() { Username = "dan@walms.co.uk", Password = "LemSatV@11" };
+                        options.CredentialsProvider = (url, user, cred) => 
+                        {
+                            Console.WriteLine("Credentials required for: " + url);
+                            var credentials = new UsernamePasswordCredentials();
+                            Console.WriteLine("Please enter your username: ");
+                            credentials.Username = Console.ReadLine();
+
+                            string pass = "";
+                            Console.WriteLine("Please enter your password:");                            
+
+                            ConsoleKeyInfo key;
+
+                            do
+                            {
+                                key = Console.ReadKey(true);
+
+                                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+                                {
+                                    pass += key.KeyChar;
+                                    Console.Write("*");
+                                }
+                                else
+                                {
+                                    if (key.Key == ConsoleKey.Backspace && pass.Length > 0)
+                                    {
+                                        pass = pass.Substring(0, (pass.Length - 1));
+                                        Console.Write("\b \b");
+                                    }
+                                }
+                            }
+                            // Stops Receving Keys Once Enter is Pressed
+                            while (key.Key != ConsoleKey.Enter);
+
+                            credentials.Password = pass;
+                            return credentials;  
+                        };
 
                         console.WriteLine(string.Format("Cloning Reference {0}", reference.Name));
 

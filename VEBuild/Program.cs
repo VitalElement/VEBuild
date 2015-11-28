@@ -68,7 +68,13 @@
                 var stopWatch = new System.Diagnostics.Stopwatch();
                 stopWatch.Start();
 
-                project.ResolveReferences(console);
+                try {
+                    project.ResolveReferences(console);
+                }
+                catch (Exception e)
+                {
+                    console.WriteLine(e.Message);
+                }
 
                 var awaiter = toolchain.Build(console, project);
                 awaiter.Wait();
@@ -125,7 +131,7 @@
             if (project != null)
             {
                 var currentReference = project.References.Where((r) => r.Name == options.Name).FirstOrDefault();
-
+                
                 if (currentReference != null)
                 {
                     project.References[project.References.IndexOf(currentReference)] = new Reference { Name = options.Name, GitUrl = options.GitUrl, Revision = options.Revision };
@@ -136,9 +142,11 @@
                 }
 
                 project.Save();
+
+                Console.WriteLine("Successfully added reference.");
             }
             
-            return -1;
+            return 1;
         }
 
         static int RunCreate(CreateOptions options)

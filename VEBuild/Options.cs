@@ -47,7 +47,7 @@
     [Verb("addref", HelpText = "Adds a reference to the current project")]
     class AddReferenceOptions : ProjectOption
     {        
-        [Value(1, Required = true, HelpText = "Name of the refernece.", MetaName = "Reference Name")]
+        [Value(1, Required = true, HelpText = "Name of the reference.", MetaName = "Reference Name")]
         public string Name { get; set; }
 
         [Option('u', "giturl", HelpText = "Url to GitRepository containing a reference.")]

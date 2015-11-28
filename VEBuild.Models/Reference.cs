@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LibGit2Sharp;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,5 +25,12 @@ namespace VEBuild.Models
         /// only valid for referencing via git url.
         /// </summary>
         public string Revision { get; set; }
+
+        public static bool IsValidGitRepo (string gitUrl)
+        {
+            var result = Repository.ListRemoteReferences(gitUrl);
+
+            return true;
+        }
     }
 }
