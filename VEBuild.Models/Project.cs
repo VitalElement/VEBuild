@@ -44,6 +44,7 @@
             SourceFiles = new List<SourceFile>();
             CompilerArguments = new List<string>();
             ToolChainArguments = new List<string>();
+            LinkerArguments = new List<string>();
             CCompilerArguments = new List<string>();
             CppCompilerArguments = new List<string>();
             BuiltinLibraries = new List<string>();
@@ -54,15 +55,15 @@
         /// <summary>
         /// Resolves each reference, cloning and updating Git referenced projects where possible.
         /// </summary>
-        public void ResolveReferences (IConsole console)
+        public void ResolveReferences(IConsole console)
         {
             foreach (var reference in References)
             {
+                var referenceDirectory = Path.Combine(SolutionDirectory, reference.Name);
+
                 if (!string.IsNullOrEmpty(reference.GitUrl))
                 {
-                    var referenceDirectory = Path.Combine(SolutionDirectory, reference.Name);
-
-                    if(!Directory.Exists (referenceDirectory))
+                    if (!Directory.Exists(referenceDirectory))
                     {
                         var options = new CloneOptions();
                         options.OnProgress = (serveroutput) =>
@@ -77,13 +78,18 @@
                             return true;
                         };
 
-                        options.CredentialsProvider = (url, user, cred) => new UsernamePasswordCredentials() { Username = "dan@walms.co.uk", Password = "******" };
+                        options.CredentialsProvider = (url, user, cred) => new UsernamePasswordCredentials() { Username = "dan@walms.co.uk", Password = "LemSatV@11" };
 
                         console.WriteLine(string.Format("Cloning Reference {0}", reference.Name));
 
                         options.Checkout = false;
 
-                        var repo = new  Repository(Repository.Clone(reference.GitUrl, referenceDirectory, options));
+                        Repository.Clone(reference.GitUrl, referenceDirectory, options);
+                    }
+
+                    if (Repository.IsValid(referenceDirectory))
+                    {
+                        var repo = new Repository(referenceDirectory);
 
                         string checkout = "HEAD";
 
@@ -93,19 +99,19 @@
                         }
 
                         repo.Checkout(checkout);
-
-                        var projectFile = Path.Combine(referenceDirectory, reference.Name + "." + Solution.projectExtension);
-
-                        if (File.Exists(projectFile))
-                        {
-                            var project = Project.Load(projectFile, Solution);
-                            Solution.Projects.Add(project);
-
-                            project.ResolveReferences(console);
-                        }
                     }
                 }
-            }              
+
+                var projectFile = Path.Combine(referenceDirectory, reference.Name + "." + Solution.projectExtension);
+
+                if (File.Exists(projectFile))
+                {
+                    var project = Project.Load(projectFile, Solution);
+                    Solution.AddProject(project);
+
+                    project.ResolveReferences(console);
+                }
+            }
         }
 
         public void SetSolution(Solution solution)
@@ -118,7 +124,7 @@
         {
             get
             {
-                return Directory.GetParent(CurrentDirectory).FullName;                
+                return Directory.GetParent(CurrentDirectory).FullName;
             }
         }
 
@@ -256,6 +262,13 @@
             return ToolChainArguments.Count > 0;
         }
         public List<string> ToolChainArguments { get; set; }
+
+        public bool ShouldSerializeLinkerArguments()
+        {
+            return LinkerArguments.Count > 0;
+        }
+
+        public List<string> LinkerArguments { get; set; }
 
         public bool ShouldSerializeBuiltinLibraries()
         {

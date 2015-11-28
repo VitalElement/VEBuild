@@ -10,7 +10,7 @@
 
         static void Main(string[] args)
         {
-           // GenerateTestProjects();            
+            //GenerateTestProjects();            
 
             var solution = Solution.Load(Directory.GetCurrentDirectory());
 

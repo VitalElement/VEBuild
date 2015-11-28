@@ -283,6 +283,11 @@ namespace VEBuild.Models
                 result += string.Format(" {0}", arg);
             }
 
+            foreach (var arg in project.LinkerArguments)
+            {
+                result += string.Format(" {0}", arg);
+            }
+
             result += string.Format(" -L{0} -Wl,-T\"{1}\"", project.CurrentDirectory, project.LinkerScript);
 
             return result;

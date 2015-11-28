@@ -4,6 +4,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
 
     public class Solution : SerializedObject<Solution>
     {
@@ -56,6 +57,16 @@
             }
 
             return result;
+        }
+
+        public void AddProject (Project project)
+        {
+            var currentProject = Projects.Where((p) => p.Name == project.Name).FirstOrDefault();
+
+            if(currentProject == null)
+            {
+                Projects.Add(project);
+            }
         }
 
         public Solution()
