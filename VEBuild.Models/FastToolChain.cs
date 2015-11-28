@@ -136,6 +136,11 @@ namespace VEBuild.Models
 
                             Link(console, project, compiledProject.First(), compiledProject.First());
                         }
+                        
+                        if(compiledProject[0].ExitCode != 0)
+                        {
+                            result = false;
+                        }
                     }
 
                     ClearBuildFlags(project);
@@ -180,7 +185,7 @@ namespace VEBuild.Models
 
             string executable = Path.Combine(outputLocation, compileResult.Project.Name);
 
-            if (compileResult.Project.Type == ProjectType.StaticLibrary)
+            if (compileResult.Project.Type == ProjectType.StaticLib)
             {
                 executable = Path.Combine(outputLocation, "lib" + compileResult.Project.Name);
                 executable += ".a";
@@ -201,7 +206,7 @@ namespace VEBuild.Models
 
             if (linkResult.ExitCode == 0)
             {
-                if (compileResult.Project.Type == ProjectType.StaticLibrary)
+                if (compileResult.Project.Type == ProjectType.StaticLib)
                 {
                     linkResults.LibraryLocations.Add(executable);
                 }
@@ -211,6 +216,10 @@ namespace VEBuild.Models
                     Size(console, compileResult.Project, linkResult);
                     linkResults.ExecutableLocations.Add(executable);
                 }
+            }
+            else if(linkResults.ExitCode == 0)
+            {
+                linkResults.ExitCode = linkResult.ExitCode;
             }
         }
 
@@ -337,6 +346,7 @@ namespace VEBuild.Models
                             }
                             else
                             {
+                                buildCount++;
                                 compileResults.ObjectLocations.Add(objectFile);
                             }
                         }                        

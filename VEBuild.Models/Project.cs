@@ -10,13 +10,18 @@
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ProjectType
     {
-        Executable,
-        SharedLibrary,
-        StaticLibrary
+        Exe,
+        SharedLib,
+        StaticLib
     }
 
     public class Project : SerializedObject<Project>
     {
+        public static string GenerateProjectFileName (string name)
+        {
+            return string.Format("{0}.{1}", name, Solution.projectExtension);
+        }
+
         [JsonIgnore]
         public bool IsBuilding { get; set; }
 
@@ -33,6 +38,29 @@
             }
 
             return project;
+        }
+
+        public static Project Create (string directory, string name)
+        {
+            Project result = null;
+                       
+            var projectFile = Path.Combine(directory, Project.GenerateProjectFileName(name));
+
+            if (!File.Exists(projectFile))
+            {
+                var project = new Project { Name = name };
+                project.Location = projectFile;
+                project.Save();
+
+                result = project;
+            }
+
+            return result;
+        }
+
+        public void Save ()
+        {
+            Serialize(this.Location);
         }
 
         public Project()
@@ -174,7 +202,7 @@
         }
 
         [JsonIgnore]
-        public string Location { get; private set; }
+        public string Location { get; internal set; }
 
         public Project GetReference(Reference reference)
         {
@@ -198,6 +226,12 @@
         }
 
         public string Name { get; set; }
+
+        public bool ShouldSerializeLanguages ()
+        {
+            return Languages.Count > 0;
+        }
+
         public List<Language> Languages { get; set; }
         public ProjectType Type { get; set; }
 
@@ -230,7 +264,7 @@
 
         public List<string> Defines { get; set; }
 
-        public bool ShouldSerializeFiles()
+        public bool ShouldSerializeSourceFiles()
         {
             return SourceFiles.Count > 0;
         }

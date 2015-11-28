@@ -7,6 +7,7 @@
     using System.Threading.Tasks;
     using CommandLine;
     using CommandLine.Text;
+    using Models;
 
     class Options
     {
@@ -37,10 +38,29 @@
     }
 
     [Verb("add", HelpText = "Adds source files to the specified project file.")]
-    class AddOptions
+    class AddOptions : ProjectOption
     {
-        [Option(Required = true, HelpText = "File name to add to directory.")]
+        [Value(0, Required = true, HelpText = "File name to add to directory.")]
         public int File { get; set; }
+    }
 
+    [Verb("addref", HelpText = "Adds a reference to the current project")]
+    class AddReferenceOptions : ProjectOption
+    {        
+        [Value(1, Required = true, HelpText = "Name of the refernece.", MetaName = "Reference Name")]
+        public string Name { get; set; }
+
+        [Option('u', "giturl", HelpText = "Url to GitRepository containing a reference.")]
+        public string GitUrl { get; set; }
+
+        [Option('r', "revision", HelpText = "Revision to keep the reference at, this can be HEAD, any tag or SHA")]
+        public string Revision { get; set; }
+    }
+
+    [Verb ("create", HelpText = "Creates new projects.")]
+    class CreateOptions : ProjectOption
+    {
+        [Option('t', "Type", Required = true, HelpText = "Options are Exe or StaticLib")]
+        public ProjectType IsLib { get; set; }
     }
 }

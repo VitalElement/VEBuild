@@ -5,6 +5,7 @@
     using VEBuild.Models;
     using CommandLine;
     using CommandLine.Text;
+    using System.Linq;
 
     class Program
     {
@@ -49,6 +50,7 @@
         static int RunBuild(BuildOptions options)
         {
             var solution = LoadSolution(options);
+            var project = FindProject(solution, options.Project);
 
             var gccSettings = new ToolchainSettings();
             gccSettings.ToolChainLocation = @"c:\vestudio\appdata\repos\GCCToolchain\bin";
@@ -60,9 +62,7 @@
 
             toolchain.Jobs = options.Jobs;
             var console = new ProgramConsole();
-
-            var project = FindProject(solution, options.Project);
-
+            
             if (project != null)
             {
                 var stopWatch = new System.Diagnostics.Stopwatch();
@@ -117,13 +117,72 @@
             return -1;
         }
 
+        static int RunAddReference(AddReferenceOptions options)
+        {
+            var solution = LoadSolution(options);
+            var project = FindProject(solution, options.Project);
+
+            if (project != null)
+            {
+                var currentReference = project.References.Where((r) => r.Name == options.Name).FirstOrDefault();
+
+                if (currentReference != null)
+                {
+                    project.References[project.References.IndexOf(currentReference)] = new Reference { Name = options.Name, GitUrl = options.GitUrl, Revision = options.Revision };
+                }
+                else
+                {
+                    project.References.Add(new Reference { Name = options.Name, GitUrl = options.GitUrl, Revision = options.Revision });
+                }
+
+                project.Save();
+            }
+            
+            return -1;
+        }
+
+        static int RunCreate(CreateOptions options)
+        {
+            string projectPath = string.Empty;
+
+            if (string.IsNullOrEmpty(options.Project))
+            {
+                projectPath = Directory.GetCurrentDirectory();
+                options.Project = Path.GetFileNameWithoutExtension(projectPath);
+            }
+            else
+            {
+                projectPath = Path.Combine(Directory.GetCurrentDirectory(), options.Project);
+            }
+
+            if(!Directory.Exists(projectPath))
+            {
+                Directory.CreateDirectory(projectPath);                
+            }
+
+            var project = Project.Create(projectPath, options.Project);
+
+            if(project != null)
+            {
+                Console.WriteLine("Project created successfully.");
+                return 1;
+            }
+            else
+            {
+                Console.WriteLine("Unable to create project. May already exist.");
+                return -1;
+            }
+        }
+
         static int Main(string[] args)
-        {            
-            var result = Parser.Default.ParseArguments<AddOptions, BuildOptions, CleanOptions>(args).MapResult(
+        {
+            var result = Parser.Default.ParseArguments<AddOptions, AddReferenceOptions, BuildOptions, CleanOptions, CreateOptions>(args).MapResult(
               (BuildOptions opts) => RunBuild(opts),
-                (AddOptions opts) => RunAdd(opts),              
+                (AddOptions opts) => RunAdd(opts),
+                (AddReferenceOptions opts) => RunAddReference(opts),
               (CleanOptions opts) => RunClean(opts),
-              errs => 1);            
+              (CreateOptions opts) => RunCreate(opts),
+              errs => 1);
 
             return result;
         }
@@ -141,7 +200,7 @@
             project.Languages.Add(Language.C);
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("./");
 
@@ -166,7 +225,7 @@
             project.Languages.Add(Language.C);
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("../STM32DiscoveryBootloader");
             project.PublicIncludes.Add("../STM32HalPlatform/USB/CustomHID");
@@ -261,7 +320,7 @@
             project.Name = "IntegratedDebugProtocol";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("./");
 
@@ -285,7 +344,7 @@
             project.Name = "CommonHal";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("./");
 
@@ -314,7 +373,7 @@
             project.Languages.Add(Language.Cpp);
             project.Languages.Add(Language.C);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("./");
             project.PublicIncludes.Add("./USB");
@@ -351,7 +410,7 @@
             project.Name = "Utils";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("./");
 
@@ -375,7 +434,7 @@
             project.Name = "GxInstrumentationHidDevice";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("./");
 
@@ -400,7 +459,7 @@
             project.Name = "Dispatcher";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("./");
 
@@ -423,7 +482,7 @@
             project.Name = "GxBootloader";
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.StaticLibrary;
+            project.Type = ProjectType.StaticLib;
 
             project.PublicIncludes.Add("./");
 
@@ -451,7 +510,7 @@
             project.Languages.Add(Language.C);
             project.Languages.Add(Language.Cpp);
 
-            project.Type = ProjectType.Executable;
+            project.Type = ProjectType.Exe;
 
             project.Includes.Add("./");
 

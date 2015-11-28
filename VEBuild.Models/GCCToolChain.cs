@@ -88,7 +88,7 @@
 
             startInfo.FileName = Path.Combine(Settings.ToolChainLocation, "arm-none-eabi-gcc.exe");
 
-            if (project.Type == ProjectType.StaticLibrary)
+            if (project.Type == ProjectType.StaticLib)
             {
                 startInfo.FileName = Path.Combine(Settings.ToolChainLocation, "arm-none-eabi-ar.exe");
             }
@@ -123,7 +123,7 @@
 
             string outputName = Path.GetFileNameWithoutExtension(project.Location) + ".elf";
 
-            if (project.Type == ProjectType.StaticLibrary)
+            if (project.Type == ProjectType.StaticLib)
             {
                 outputName = "lib" + Path.GetFileNameWithoutExtension(project.Name) + ".a";
             }
@@ -156,7 +156,7 @@
 
             startInfo.Arguments = string.Format("{0} -o{1} {2} -Wl,--start-group {3} {4} -Wl,--end-group", GetLinkerArguments(project), executable, objectArguments, linkedLibraries, libs);
 
-            if (project.Type == ProjectType.StaticLibrary)
+            if (project.Type == ProjectType.StaticLib)
             {
                 startInfo.Arguments = string.Format("rvs {0} {1}", executable, objectArguments);
             }
