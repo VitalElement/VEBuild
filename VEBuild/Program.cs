@@ -3,15 +3,15 @@
     using System;
     using System.IO;
     using VEBuild.Models;
+    using CommandLine;
+    using CommandLine.Text;
 
     class Program
-    {        
-        const string baseDir = @"c:\development\vebuild\test";        
+    {
+        const string baseDir = @"c:\development\vebuild\test";
 
-        static void Main(string[] args)
+        static int RunBuild(BuildOptions options)
         {
-            //GenerateTestProjects();            
-
             var solution = Solution.Load(Directory.GetCurrentDirectory());
 
             var gccSettings = new ToolchainSettings();
@@ -21,29 +21,63 @@
             gccSettings.IncludePaths.Add("lib\\gcc\\arm-none-eabi\\4.9.3\\include");
 
             var toolchain = new FastGccToolChain(gccSettings);
+
+            toolchain.Jobs = options.Jobs;
             var console = new ProgramConsole();
 
-
-            var projectFile = Path.Combine(Directory.GetCurrentDirectory(), args[0], args[0] + "." + Solution.projectExtension);
-            var project = solution.FindProject(args[0]);
-
-
-            var awaiter = toolchain.Clean(console, project);
+            var project = solution.FindProject(options.Project);
             
-            awaiter.Wait();
-
             var stopWatch = new System.Diagnostics.Stopwatch();
             stopWatch.Start();
 
             project.ResolveReferences(console);
 
-            awaiter = toolchain.Build(console, project);
+            var awaiter = toolchain.Build(console, project);
             awaiter.Wait();
 
             stopWatch.Stop();
             console.WriteLine(stopWatch.Elapsed.ToString());
 
+
+            return 1;
+        }
+
+        static int RunClean (CleanOptions options)
+        {
+            var solution = Solution.Load(Directory.GetCurrentDirectory());
+
+            var gccSettings = new ToolchainSettings();
+            gccSettings.ToolChainLocation = @"c:\vestudio\appdata\repos\GCCToolchain\bin";
+            gccSettings.IncludePaths.Add("arm-none-eabi\\include\\c++\\4.9.3");
+            gccSettings.IncludePaths.Add("arm-none-eabi\\include\\c++\\4.9.3\\arm-none-eabi\\thumb");
+            gccSettings.IncludePaths.Add("lib\\gcc\\arm-none-eabi\\4.9.3\\include");
+
+            var toolchain = new FastGccToolChain(gccSettings);
+            
+            var console = new ProgramConsole();
+
+            var project = solution.FindProject(options.Project);
+
+            toolchain.Clean(console, project).Wait();
+
+            return 1;
+        }
+
+        static int RunAdd(AddOptions options)
+        {
+            return -1;
+        }
+
+        static int Main(string[] args)
+        {
+            var result =  Parser.Default.ParseArguments<AddOptions, BuildOptions, CleanOptions>(args).MapResult(
+              (AddOptions opts) => RunAdd(opts),
+              (BuildOptions opts) => RunBuild(opts),
+              (CleanOptions opts)=>RunClean (opts),
+              errs => 1);
+
             Console.ReadKey();
+            return result;
         }
 
         static void GenerateTestProjects()
@@ -51,7 +85,7 @@
             if (!Directory.Exists(baseDir))
             {
                 Directory.CreateDirectory(baseDir);
-            }            
+            }
 
             var project = new Project();
 
@@ -85,13 +119,13 @@
             project.Languages.Add(Language.Cpp);
 
             project.Type = ProjectType.StaticLibrary;
-            
+
             project.PublicIncludes.Add("../STM32DiscoveryBootloader");
             project.PublicIncludes.Add("../STM32HalPlatform/USB/CustomHID");
             project.PublicIncludes.Add("./Drivers/STM32F4xx_HAL_Driver/Inc");
             project.PublicIncludes.Add("Middlewares/ST/STM32_USB_Device_Library/Core/Inc");
             project.PublicIncludes.Add("Drivers/CMSIS/Device/ST/STM32F4xx/Include");
-            project.PublicIncludes.Add("Drivers/CMSIS/Include");            
+            project.PublicIncludes.Add("Drivers/CMSIS/Include");
 
             project.SourceFiles.Add(new SourceFile { File = "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c" });
             project.SourceFiles.Add(new SourceFile { File = "./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c" });
@@ -176,7 +210,7 @@
 
             project = new Project();
 
-            project.Name = "IntegratedDebugProtocol";            
+            project.Name = "IntegratedDebugProtocol";
             project.Languages.Add(Language.Cpp);
 
             project.Type = ProjectType.StaticLibrary;
@@ -248,7 +282,7 @@
             project.SourceFiles.Add(new SourceFile { File = "STM32BootloaderService.cpp" });
             project.SourceFiles.Add(new SourceFile { File = "STM32InputCaptureChannel.cpp" });
             project.SourceFiles.Add(new SourceFile { File = "STM32QuadratureEncoder.cpp" });
-            project.SourceFiles.Add(new SourceFile { File = "STM32Timer.cpp" });            
+            project.SourceFiles.Add(new SourceFile { File = "STM32Timer.cpp" });
 
             project.References.Add(new Reference { Name = "CommonHal" });
             project.References.Add(new Reference { Name = "STM32F4Cube" });
@@ -373,7 +407,7 @@
 
             project.Includes.Add("./");
 
-            project.References.Add(new Reference { Name = "ArmSystem", GitUrl= "http://gxgroup.duia.eu/gx/ArmSystem.git", Revision="HEAD" });
+            project.References.Add(new Reference { Name = "ArmSystem", GitUrl = "http://gxgroup.duia.eu/gx/ArmSystem.git", Revision = "HEAD" });
             project.References.Add(new Reference { Name = "CommonHal" });
             project.References.Add(new Reference { Name = "GxBootloader" });
             project.References.Add(new Reference { Name = "STM32F4Cube" });
@@ -388,7 +422,7 @@
             project.ToolChainArguments.Add("-mthumb");
             project.ToolChainArguments.Add("-mfpu=fpv4-sp-d16");
             project.ToolChainArguments.Add("-mfloat-abi=hard");
-            
+
             project.ToolChainArguments.Add("-fno-exceptions");
             project.ToolChainArguments.Add("-O3");
             project.ToolChainArguments.Add("-Os");

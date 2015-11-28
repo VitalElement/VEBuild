@@ -13,7 +13,10 @@ namespace VEBuild.Models
         public FastToolChain(ToolchainSettings settings)
         {
             this.Settings = settings;
+            this.Jobs = 1;
         }
+
+        public int Jobs { get; set; }
 
         protected ToolchainSettings Settings { get; private set; }
 
@@ -79,7 +82,6 @@ namespace VEBuild.Models
 
         public override async Task<bool> Build(IConsole console, Project project)
         {
-            console.Clear();
             console.WriteLine("Starting Build...");
 
             bool result = true;
@@ -119,7 +121,7 @@ namespace VEBuild.Models
                         {
                             break;
                         }
-                    }                    
+                    }
 
                     if (result)
                     {
@@ -127,7 +129,6 @@ namespace VEBuild.Models
 
                         if (result)
                         {
-
                             foreach (var compiledReference in compiledReferences)
                             {
                                 Link(console, project, compiledReference, compiledProject.First());
@@ -259,6 +260,8 @@ namespace VEBuild.Models
                     var compileResults = new CompileResult();
                     compileResults.Project = project;
 
+                    results.Add(compileResults);
+
                     var tasks = new List<Task>();
                     //var parallelResult = Parallel.ForEach(project.SourceFiles, (file) =>
                     int numLocalTasks = 0;
@@ -299,7 +302,7 @@ namespace VEBuild.Models
 
                             if (dependencyChanged || !File.Exists(objectFile))
                             {
-                                while (numTasks >= 16)
+                                while (numTasks >= Jobs)
                                 {
                                     Thread.Yield();
                                 }
@@ -310,7 +313,7 @@ namespace VEBuild.Models
                                     numTasks++;
                                     console.OverWrite(string.Format("[CC {0}/{1}]    [{2}]    {3}", ++buildCount, fileCount, project.Name, Path.GetFileName(file.Location)));
                                 }
-                                
+
                                 new Thread(new ThreadStart(() =>
                                 {
                                     var compileResult = Compile(console, superProject, project, file, objectFile);
@@ -329,15 +332,14 @@ namespace VEBuild.Models
 
                                         numTasks--;
                                         numLocalTasks--;
-
-                                        if (numLocalTasks == 0)
-                                        {
-                                            results.Add(compileResults);
-                                        }
                                     }
                                 })).Start();
                             }
-                        }
+                            else
+                            {
+                                compileResults.ObjectLocations.Add(objectFile);
+                            }
+                        }                        
                     }
                 }
             }
@@ -347,7 +349,6 @@ namespace VEBuild.Models
         {
             await Task.Factory.StartNew(() =>
             {
-                console.Clear();
                 console.WriteLine("Starting Clean...");
 
                 var outputDir = project.GetOutputDirectory(project);
