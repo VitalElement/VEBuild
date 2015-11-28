@@ -58,7 +58,7 @@
             gccSettings.IncludePaths.Add("arm-none-eabi\\include\\c++\\4.9.3\\arm-none-eabi\\thumb");
             gccSettings.IncludePaths.Add("lib\\gcc\\arm-none-eabi\\4.9.3\\include");
 
-            var toolchain = new FastGccToolChain(gccSettings);
+            var toolchain = new GccToolChain(gccSettings);
 
             toolchain.Jobs = options.Jobs;
             var console = new ProgramConsole();
@@ -100,7 +100,7 @@
             gccSettings.IncludePaths.Add("arm-none-eabi\\include\\c++\\4.9.3\\arm-none-eabi\\thumb");
             gccSettings.IncludePaths.Add("lib\\gcc\\arm-none-eabi\\4.9.3\\include");
 
-            var toolchain = new FastGccToolChain(gccSettings);
+            var toolchain = new GccToolChain(gccSettings);
 
             var console = new ProgramConsole();
 

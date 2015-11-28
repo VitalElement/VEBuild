@@ -1,23 +1,26 @@
-﻿namespace VEBuild.Models
-{
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
+namespace VEBuild.Models
+{
     public abstract class StandardToolChain : ToolChain
     {
-        public StandardToolChain (ToolchainSettings settings)
+        public StandardToolChain(ToolchainSettings settings)
         {
             this.Settings = settings;
+            this.Jobs = 1;
         }
+
+        public int Jobs { get; set; }
 
         protected ToolchainSettings Settings { get; private set; }
 
-        public abstract void Compile(IConsole console, Project superProject, Project project, SourceFile file, string outputFile, CompileResult result);
+        public abstract CompileResult Compile(IConsole console, Project superProject, Project project, SourceFile file, string outputFile);
 
         public abstract LinkResult Link(IConsole console, Project superProject, Project project, CompileResult assemblies, string outputDirectory);
 
@@ -27,149 +30,159 @@
 
         public abstract string GetLinkerArguments(Project project);
 
-        public override async Task<bool> Build(IConsole console, Project project)
+        private object resultLock = new object();
+        private int numTasks = 0;
+
+        private void ClearBuildFlags(Project project)
         {
-            bool result = false;
-
-            console.Clear();
-            console.WriteLine("Starting Build...");            
-
-            if (Settings.ToolChainLocation == null)
+            foreach (var reference in project.References)
             {
-                console.WriteLine("Tool chain path has not been configured.");
+                var loadedReference = project.GetReference(reference);
 
-                result = false;
-            }
-            else
-            {
-                if (project.Type == ProjectType.StaticLibrary)
-                {
-                    result = (await BuildLibrary(console, project, project)).ExitCode == 0;
-                }
-                else
-                {
-                    result = (await BuildExecutable(console, project)).ExitCode == 0;
-                }
+                ClearBuildFlags(loadedReference);
             }
 
-            console.WriteLine();
+            project.IsBuilding = false;
+        }
 
-            if (result)
+        bool terminateBuild = false;
+
+        private int GetFileCount (Project project)
+        {
+            int result = 0;
+
+            foreach (var reference in project.References)
             {
-                console.WriteLine("Build Completed Successfully.");
+                var loadedReference = project.GetReference(reference);
+
+                result += GetFileCount(loadedReference);                
             }
-            else
+
+            if(!project.IsBuilding)
             {
-                console.WriteLine("Build Failed.");
+                project.IsBuilding = true;
+
+                result += project.SourceFiles.Count;
             }
 
             return result;
         }
 
-        private async Task<CompileResult> BuildExecutable(IConsole console, Project project)
+        private int fileCount = 0;
+        private int buildCount = 0;
+
+        private void SetFileCount(Project project)
         {
-            var result = new CompileResult();
+            ClearBuildFlags(project);
 
-            var compileResults = new CompileResult();
+            fileCount = GetFileCount(project);
 
-            foreach (var reference in project.References)
+            ClearBuildFlags(project);
+        }
+
+        public override async Task<bool> Build(IConsole console, Project project)
+        {
+            console.WriteLine("Starting Build...");
+
+            bool result = true;
+            terminateBuild = false;
+
+            SetFileCount(project);
+            buildCount = 0;
+            
+            var compiledProjects = new List<CompileResult>();
+
+            if (!terminateBuild)
             {
-                var loadedReference = project.GetReference(reference);
-                
-                if (loadedReference.Type == ProjectType.StaticLibrary)
-                {
-                    var referenceResult = await BuildLibrary(console, project, loadedReference);
+                await CompileProject(console, project, project, compiledProjects);
 
-                    if (referenceResult.ExitCode == 0)
-                    {
-                        compileResults.LibraryLocations.AddRange(referenceResult.LibraryLocations);
-                        compileResults.NumberOfObjectsCompiled += referenceResult.NumberOfObjectsCompiled;
-                    }
-                    else
-                    {
-                        result.ExitCode = -1;
-                        return result;
-                    }
-                }
-                else
+                if (!terminateBuild)
                 {
-                    var subResult = await BuildExecutable(console, loadedReference);
-
-                    if (subResult.ExitCode == 0)
+                    await WaitForCompileJobs();
+                    
+                    foreach (var compiledReference in compiledProjects)
                     {
-                        foreach (var executable in subResult.ExecutableLocations)
+                        result = compiledReference.ExitCode == 0;
+
+                        if(!result)
                         {
-                            string outputDirectory = Path.Combine(project.CurrentDirectory, "bin");
-
-                            string destination = Path.Combine(outputDirectory, Path.GetFileName(executable));
-
-                            if (!Directory.Exists(outputDirectory))
-                            {
-                                Directory.CreateDirectory(outputDirectory);
-                            }
-
-                            File.Copy(executable, destination, true);
+                            break;
                         }
                     }
-                    else
+
+                    if (result)
                     {
-                        result.ExitCode = -1;
-                        return result;
+                        var linkedReferences = new CompileResult();
+                        linkedReferences.Project = project;
+
+                        foreach (var compiledProject in compiledProjects)
+                        {
+                            if (compiledProject.Project != project)
+                            {
+                                Link(console, project, compiledProject, linkedReferences);
+                            }
+                            else
+                            {
+                                if (linkedReferences.Count > 0)
+                                {
+                                    linkedReferences.ObjectLocations = compiledProject.ObjectLocations;
+                                    Link(console, project, linkedReferences, linkedReferences);
+                                }
+                            }
+
+                            if(linkedReferences.ExitCode != 0)
+                            {
+                                result = false;
+                                break;
+                            }
+                        }
                     }
+
+                    ClearBuildFlags(project);
                 }
             }
 
-            
-            var compilationResult = await Compile(console, project, project);            
+            console.WriteLine();
 
-            compilationResult.NumberOfObjectsCompiled += compileResults.NumberOfObjectsCompiled;
-
-            if (compilationResult.ExitCode == 0)
+            if(result)
             {
-                if (compilationResult.Count > 0)
-                {
-                    compilationResult.ObjectLocations.AddRange(compileResults.ObjectLocations);
-                    compilationResult.LibraryLocations.AddRange(compileResults.LibraryLocations);
-
-                    result = Link(console, project, project, compilationResult);
-                }
-
-                return result;
+                console.WriteLine("Build Successful");
             }
             else
             {
-                result.ExitCode = -1;
-                return result;
+                console.WriteLine("Build Failed");
             }
+
+            return result;
         }
 
-        private CompileResult Link(IConsole console, Project superProject, Project project, CompileResult compilationResults)
+        private async Task WaitForCompileJobs()
         {
-            var result = new CompileResult();
-
-            string outputLocation = string.Empty;
-
-            var objDirectory = project.GetObjectDirectory(superProject);
-
-            if(!Directory.Exists(objDirectory))
+            await Task.Factory.StartNew(() =>
             {
-                Directory.CreateDirectory(objDirectory);
-            }
+                while (numTasks > 0)
+                {
+                    Thread.Sleep(10);
+                }
+            });
+        }
 
-            var binDirectory = project.GetBinDirectory(superProject);
+        private void Link(IConsole console, Project superProject, CompileResult compileResult, CompileResult linkResults)
+        {
+            var binDirectory = compileResult.Project.GetBinDirectory(superProject);
 
-            if(!Directory.Exists(binDirectory))
+            if (!Directory.Exists(binDirectory))
             {
                 Directory.CreateDirectory(binDirectory);
             }
 
-            outputLocation = binDirectory;            
+            string outputLocation = binDirectory;
 
-            string executable = Path.Combine(outputLocation, project.Name);
+            string executable = Path.Combine(outputLocation, compileResult.Project.Name);
 
-            if (project.Type == ProjectType.StaticLibrary)
+            if (compileResult.Project.Type == ProjectType.StaticLibrary)
             {
-                executable = Path.Combine(outputLocation, "lib" + project.Name);
+                executable = Path.Combine(outputLocation, "lib" + compileResult.Project.Name);
                 executable += ".a";
             }
             else
@@ -182,329 +195,234 @@
                 Directory.CreateDirectory(outputLocation);
             }
 
-            if (!File.Exists(executable) || compilationResults.NumberOfObjectsCompiled > 0)
+            console.OverWrite(string.Format("[LL]    [{0}]", compileResult.Project.Name));
+
+            var linkResult = Link(console, superProject, compileResult.Project, compileResult, outputLocation);
+
+            if (linkResult.ExitCode == 0)
             {
-                console.OverWrite(string.Format("[LL]    [{0}]", project.Name));
-
-                var linkResults = Link(console, superProject, project, compilationResults, outputLocation);
-
-                if (linkResults.ExitCode == 0)
-                {                    
-                    if (project.Type == ProjectType.StaticLibrary)
-                    {
-                        result.LibraryLocations.Add(executable);
-                    }
-                    else
-                    {
-                        console.WriteLine();
-                        Size(console, project, linkResults);
-                        result.ExecutableLocations.Add(executable);
-                    }
-
-                    result.NumberOfObjectsCompiled += compilationResults.NumberOfObjectsCompiled;
+                if (compileResult.Project.Type == ProjectType.StaticLibrary)
+                {
+                    linkResults.LibraryLocations.Add(executable);
                 }
                 else
-                {                    
-                    result.ExitCode = -1;
-                }
-            }
-            else
-            {
-                if (project.Type == ProjectType.StaticLibrary)
-                {
-                    result.LibraryLocations.Add(executable);
-                }
-                else
-                {
-                    result.ExecutableLocations.Add(executable);
-                }
-
-                if (superProject == project)
                 {
                     console.WriteLine();
-                    Size(console, project, new LinkResult() { Executable = executable });
-                    console.WriteLine();
+                    Size(console, compileResult.Project, linkResult);
+                    linkResults.ExecutableLocations.Add(executable);
                 }
             }
-
-            return result;
-        }
-
-        private async Task<CompileResult> BuildLibrary(IConsole console, Project superProject, Project project)
-        {
-            var result = new CompileResult();
-
-            CompileResult referenceResults = new CompileResult();
-
-            foreach (var reference in project.References)
+            else if(linkResults.ExitCode == 0)
             {
-                var loadedReference = project.GetReference(reference);
-
-
-                if (loadedReference.Type == ProjectType.StaticLibrary)
-                {
-                    var refResult = await BuildReference(console, superProject, loadedReference);
-
-                    if (refResult.ExitCode == 0)
-                    {
-                        foreach (var obj in refResult.ObjectLocations)
-                        {
-                            referenceResults.ObjectLocations.Add(obj);
-                        }
-
-                        referenceResults.NumberOfObjectsCompiled += refResult.NumberOfObjectsCompiled;
-                    }
-                    else
-                    {
-                        result.ExitCode = -1;
-
-                        return result;
-                    }
-                }
-                else
-                {
-                    var subResult = await BuildExecutable(console, loadedReference);
-
-                    if (subResult.ExitCode == 0)
-                    {
-                        foreach (var executable in subResult.ExecutableLocations)
-                        {
-                            string outputDirectory = Path.Combine(project.CurrentDirectory, "bin");
-
-                            string destination = Path.Combine(outputDirectory, Path.GetFileName(executable));
-
-                            if (!Directory.Exists(outputDirectory))
-                            {
-                                Directory.CreateDirectory(outputDirectory);
-                            }
-
-                            File.Copy(executable, destination, true);
-                        }
-                    }
-                    else
-                    {
-                        result.ExitCode = -1;
-                        return result;
-                    }
-                }
-            }
-
-            // bool hasBuiltSomething = false;
-
-            //if (project.ToBuild(this, superProject))
-            //{
-            //    hasBuiltSomething = true;
-            //    console.WriteLine(string.Format("[BB] - Building Library - {0}", project.Title));
-            //}
-
-            var compilationResult = await Compile(console, superProject, project);
-            compilationResult.NumberOfObjectsCompiled += referenceResults.NumberOfObjectsCompiled;
-
-            //if (hasBuiltSomething)
-            //{
-            //    console.WriteLine();
-            //}
-
-            if (compilationResult.ExitCode == 0)
-            {
-                compilationResult.ObjectLocations.AddRange(referenceResults.ObjectLocations);
-
-                if (compilationResult.Count > 0)
-                {
-                    result.NumberOfObjectsCompiled += compilationResult.NumberOfObjectsCompiled;
-                    result = Link(console, superProject, project, compilationResult);
-                }
-
-                return result;
-            }
-            else
-            {
-                return compilationResult;
+                linkResults.ExitCode = linkResult.ExitCode;
             }
         }
 
-
-        private async Task<CompileResult> Compile(IConsole console, Project superProject, Project project)
+        private async Task CompileProject(IConsole console, Project superProject, Project project, List<CompileResult> results = null)
         {
-            CompileResult result = new CompileResult();
-
-            if (project.SourceFiles.Count == 0)
+            if (project.Type == ProjectType.Executable && superProject != project)
             {
-                return result;
+                await Build(console, project);
             }
-
-            Semaphore compileThread = new Semaphore(32, 32);
-            int compileJobs = 0;
-            object compileJobsLock = new object();
-
-            await Task.Factory.StartNew(() =>
+            else
             {
-                var outputDirectory = project.GetOutputDirectory(superProject);
-
-                if (!Directory.Exists(outputDirectory))
+                if (!terminateBuild)
                 {
-                    Directory.CreateDirectory(outputDirectory);
-                }
-
-                var objDirectory = project.GetObjectDirectory(superProject);
-
-                if (!Directory.Exists(objDirectory))
-                {
-                    Directory.CreateDirectory(objDirectory);
-                }                
-
-                foreach (var file in project.SourceFiles)
-                {
-                    if (Path.GetExtension(file.Location) == ".c" || Path.GetExtension(file.Location) == ".cpp")
+                    if (results == null)
                     {
-                        var outputName = Path.GetFileNameWithoutExtension(file.Location) + ".o";
-                        var dependencyFile = Path.Combine(objDirectory, Path.GetFileNameWithoutExtension(file.Location) + ".d");
-                        var objectFile = Path.Combine(objDirectory, outputName);
+                        results = new List<CompileResult>();
+                    }
 
-                        bool dependencyChanged = false;
-                        object resultLock = new object();
+                    foreach (var reference in project.References)
+                    {
+                        var loadedReference = project.GetReference(reference);
 
-                        if (File.Exists(dependencyFile))
+                        await CompileProject(console, superProject, loadedReference, results);
+                    }
+
+                    var outputDirectory = project.GetOutputDirectory(superProject);
+
+                    if (!Directory.Exists(outputDirectory))
+                    {
+                        Directory.CreateDirectory(outputDirectory);
+                    }
+
+                    bool doWork = false;
+
+                    lock (resultLock)
+                    {
+                        if (!project.IsBuilding)
                         {
-                            var dependencies = ProjectExtensions.GetDependencies(dependencyFile);
+                            project.IsBuilding = true;
+                            doWork = true;
+                        }
+                    }
 
-                            foreach (var dependency in dependencies)
-                            {
-                                if (!File.Exists(dependency) || File.GetLastWriteTime(dependency) > File.GetLastWriteTime(objectFile))
-                                {
-                                    dependencyChanged = true;
-                                    break;
-                                }
-                            }
+                    if (doWork)
+                    {
+                        var objDirectory = project.GetObjectDirectory(superProject);
+
+                        if (!Directory.Exists(objDirectory))
+                        {
+                            Directory.CreateDirectory(objDirectory);
                         }
 
-                        if (dependencyChanged || !File.Exists(objectFile))
-                        {
-                            compileThread.WaitOne();
+                        var compileResults = new CompileResult();
+                        compileResults.Project = project;
 
-                            lock (compileJobsLock)
+                        results.Add(compileResults);
+
+                        var tasks = new List<Task>();
+                        //var parallelResult = Parallel.ForEach(project.SourceFiles, (file) =>
+                        int numLocalTasks = 0;
+
+                        foreach (var file in project.SourceFiles)
+                        {
+                            if (terminateBuild)
                             {
-                                compileJobs++;
+                                break;
                             }
 
-                            console.OverWrite(string.Format("[CC]    [{0}]    {1}", project.Name, Path.GetFileName(file.Location)));                            
-
-                            new Thread(() =>
+                            if (Path.GetExtension(file.Location) == ".c" || Path.GetExtension(file.Location) == ".cpp")
                             {
-                                this.Compile(console, superProject, project, file, objectFile, result);
-                                compileThread.Release(1);
+                                var outputName = Path.GetFileNameWithoutExtension(file.Location) + ".o";
+                                var dependencyFile = Path.Combine(objDirectory, Path.GetFileNameWithoutExtension(file.Location) + ".d");
+                                var objectFile = Path.Combine(objDirectory, outputName);
 
-                                lock (resultLock)
+                                bool dependencyChanged = false;
+
+                                if (File.Exists(dependencyFile))
                                 {
-                                    if (result.ExitCode == 0 && File.Exists(objectFile))
+                                    List<string> dependencies = new List<string>();
+
+                                    //lock(resultLock)
                                     {
-                                        result.ObjectLocations.Add(objectFile);
-                                        result.NumberOfObjectsCompiled++;
-                                    }
-                                    else
-                                    {
-                                        console.WriteLine("Compilation failed.");
+                                        dependencies.AddRange(ProjectExtensions.GetDependencies(dependencyFile));
+
+                                        foreach (var dependency in dependencies)
+                                        {
+                                            if (!File.Exists(dependency) || File.GetLastWriteTime(dependency) > File.GetLastWriteTime(objectFile))
+                                            {
+                                                dependencyChanged = true;
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
 
-                                lock (compileJobsLock)
+                                if (dependencyChanged || !File.Exists(objectFile))
                                 {
-                                    compileJobs--;
-                                }
+                                    while (numTasks >= Jobs)
+                                    {
+                                        Thread.Yield();
+                                    }
 
-                            }).Start();
+                                    lock (resultLock)
+                                    {
+                                        numLocalTasks++;
+                                        numTasks++;
+                                        console.OverWrite(string.Format("[CC {0}/{1}]    [{2}]    {3}", ++buildCount, fileCount, project.Name, Path.GetFileName(file.Location)));
+                                    }
+
+                                    new Thread(new ThreadStart(() =>
+                                    {
+                                        var compileResult = Compile(console, superProject, project, file, objectFile);
+
+                                        lock (resultLock)
+                                        {
+                                            if (compileResults.ExitCode == 0 && compileResult.ExitCode != 0)
+                                            {
+                                                terminateBuild = true;
+                                                compileResults.ExitCode = compileResult.ExitCode;
+                                            }
+                                            else
+                                            {
+                                                compileResults.ObjectLocations.Add(objectFile);
+                                            }
+
+                                            numTasks--;
+                                            numLocalTasks--;
+                                        }
+                                    })).Start();
+                                }
+                                else
+                                {
+                                    buildCount++;
+                                    compileResults.ObjectLocations.Add(objectFile);
+                                }
+                            }
                         }
-                        else
-                        {
-                            result.ObjectLocations.Add(objectFile);
-                        }
-                    }
-                    else
-                    {
-                        break;
                     }
                 }
-            });
-
-            await Task.Factory.StartNew(() =>
-            {
-                while (compileJobs != 0)
-                {
-                    Thread.Yield();
-                };
-            });
-
-            return result;
+            }
         }
 
-        private async Task<CompileResult> BuildReference(IConsole console, Project superProject, Project project)
+        private async Task CleanAll(IConsole console, Project superProject, Project project)
         {
-            var compileResults = new CompileResult();
-            //bool hasBuiltSomething = false;
-
             foreach (var reference in project.References)
-            {
+            {               
                 var loadedReference = project.GetReference(reference);
 
-                var result = await BuildReference(console, superProject, loadedReference);
-
-                if (result.ExitCode == 0)
+                if (loadedReference.Type == ProjectType.Executable)
                 {
-                    compileResults.NumberOfObjectsCompiled += result.NumberOfObjectsCompiled;
-                    compileResults.ObjectLocations.AddRange(result.ObjectLocations);
+                    await CleanAll(console, loadedReference, loadedReference);
                 }
                 else
                 {
-                    compileResults.ExitCode = -1;
-                    return compileResults;
+                    await CleanAll(console, superProject, loadedReference);
                 }
             }
 
-            //if (project.ToBuild(this, superProject))
-            //{
-            //    console.WriteLine(string.Format("[BB] - Building Referenced Project - {0}", project.Title));
-            //    hasBuiltSomething = true;
-            //}
+            string outputDirectory = project.GetObjectDirectory(superProject);
 
-            var superResults = await Compile(console, superProject, project);
+            bool hasCleaned = false;
 
-            //if (hasBuiltSomething)
-            //{
-            //    console.WriteLine();
-            //}
-
-            if (superResults.ExitCode == 0)
+            if (Directory.Exists(outputDirectory))
             {
-                compileResults.NumberOfObjectsCompiled += superResults.NumberOfObjectsCompiled;
-                compileResults.ObjectLocations.AddRange(superResults.ObjectLocations);
-                return compileResults;
+                hasCleaned = true;
+
+                try
+                {
+                    Directory.Delete(outputDirectory, true);
+                }
+                catch (Exception)
+                {
+
+                }
             }
-            else
+
+            outputDirectory = project.GetOutputDirectory(superProject);
+
+            if (Directory.Exists(outputDirectory))
             {
-                superResults.ExitCode = -1;
-                return superResults;
+                hasCleaned = true;
+
+                try
+                {
+                    Directory.Delete(outputDirectory, true);
+                }
+                catch (Exception)
+                {
+
+                }
+            }
+
+            if (hasCleaned)
+            {
+                console.WriteLine(string.Format("[BB] - Cleaning Project - {0}", project.Name));
             }
         }
-
-        
-
 
         public override async Task Clean(IConsole console, Project project)
         {
-            await Task.Factory.StartNew(() =>
+            await Task.Factory.StartNew(async () =>
             {
-                console.Clear();
                 console.WriteLine("Starting Clean...");
 
-                var outputDir = project.GetOutputDirectory(project);
-
-                if (Directory.Exists(outputDir))
-                {
-                    Directory.Delete(outputDir, true);
-                }
+                await CleanAll(console, project, project);
 
                 console.WriteLine("Clean Completed.");
-            });            
+            });
         }
     }
 }
