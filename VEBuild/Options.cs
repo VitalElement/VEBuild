@@ -58,9 +58,12 @@
     }
 
     [Verb ("create", HelpText = "Creates new projects.")]
-    class CreateOptions : ProjectOption
+    class CreateOptions
     {
-        [Option('t', "Type", Required = true, HelpText = "Options are Executable or StaticLibrary")]
-        public ProjectType IsLib { get; set; }
+        [Value(0, Required =true, MetaName = "Project Name", HelpText = "Name of project to create")]
+        public string Project { get; set; }
+
+        [Option('t', "Type", Required = true, HelpText = "Options are Executable, StaticLibrary or SuperProject")]
+        public ProjectType Type { get; set; }
     }
 }

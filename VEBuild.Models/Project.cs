@@ -12,7 +12,8 @@
     {
         Executable,
         SharedLibrary,
-        StaticLibrary
+        StaticLibrary,
+        SuperProject
     }
 
     public class Project : SerializedObject<Project>
