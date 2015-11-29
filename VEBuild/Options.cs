@@ -41,7 +41,14 @@
     class AddOptions : ProjectOption
     {
         [Value(0, Required = true, HelpText = "File name to add to directory.")]
-        public int File { get; set; }
+        public string File { get; set; }
+    }
+
+    [Verb("remove", HelpText = "Removes source files to the specified project file.")]
+    class RemoveOptions : ProjectOption
+    {
+        [Value(0, Required = true, HelpText = "File name to add to directory.")]
+        public string File { get; set; }
     }
 
     [Verb("addref", HelpText = "Adds a reference to the current project")]

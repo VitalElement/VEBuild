@@ -118,9 +118,88 @@
             return 1;
         }
 
+        static string NormalizePath (string path)
+        {
+            if (path != null)
+            {
+                return Path.GetFullPath(new Uri(path).LocalPath)
+                           .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        static int RunRemove (RemoveOptions options)
+        {
+            var file = Path.Combine(Directory.GetCurrentDirectory(), options.File);
+
+            if (File.Exists(file))
+            {
+                var solution = LoadSolution(options);
+                var project = FindProject(solution, options.Project);
+
+                if (project != null)
+                {
+                    // todo normalize paths.
+                    var currentFile = project.SourceFiles.Where((s) => s.File.Normalize() == options.File.Normalize()).FirstOrDefault();
+
+                    if (currentFile != null)
+                    {
+                        project.SourceFiles.RemoveAt(project.SourceFiles.IndexOf(currentFile));                        
+                        project.Save();
+                        Console.WriteLine("File removed.");
+
+                        return 1;
+                    }
+                    else
+                    {
+                        Console.WriteLine("File not found in project.");
+                        return -1;
+                    }
+                    
+                }
+                else
+                {
+                    Console.WriteLine("Project not found.");
+                    return -1;
+                }
+            }
+            else
+            {
+                Console.WriteLine("File not found.");
+                return -1;
+            }
+        }
+
         static int RunAdd(AddOptions options)
         {
-            return -1;
+            var file = Path.Combine(Directory.GetCurrentDirectory(), options.File);
+
+            if (File.Exists(file))
+            {
+                var solution = LoadSolution(options);
+                var project = FindProject(solution, options.Project);
+
+                if(project != null)
+                {
+                    project.SourceFiles.Add(new SourceFile { File = options.File });
+                    project.Save();
+                    Console.WriteLine("File added.");
+                    return 1;
+                }
+                else
+                {
+                    Console.WriteLine("Project not found.");
+                    return -1;
+                }
+            }
+            else
+            {
+                Console.WriteLine("File not found.");
+                return -1;
+            }
         }
 
         static int RunAddReference(AddReferenceOptions options)
@@ -184,12 +263,13 @@
 
         static int Main(string[] args)
         {
-            var result = Parser.Default.ParseArguments<AddOptions, AddReferenceOptions, BuildOptions, CleanOptions, CreateOptions>(args).MapResult(
+            var result = Parser.Default.ParseArguments<AddOptions, RemoveOptions, AddReferenceOptions, BuildOptions, CleanOptions, CreateOptions>(args).MapResult(
               (BuildOptions opts) => RunBuild(opts),
                 (AddOptions opts) => RunAdd(opts),
                 (AddReferenceOptions opts) => RunAddReference(opts),
               (CleanOptions opts) => RunClean(opts),
               (CreateOptions opts) => RunCreate(opts),
+              (RemoveOptions opts)=>RunRemove(opts),
               errs => 1);
 
             return result;
