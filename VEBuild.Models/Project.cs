@@ -81,11 +81,13 @@
 
         }
 
+        private static Dictionary<string, Tuple<string, string>> passwordCache = new Dictionary<string, Tuple<string, string>>();
+
         /// <summary>
         /// Resolves each reference, cloning and updating Git referenced projects where possible.
         /// </summary>
         public void ResolveReferences(IConsole console)
-        {
+        {            
             foreach (var reference in References)
             {
                 var referenceDirectory = Path.Combine(SolutionDirectory, reference.Name);
@@ -109,41 +111,58 @@
 
                         options.CredentialsProvider = (url, user, cred) => 
                         {
-                            Console.WriteLine("Credentials required for: " + url);
+                            var domain = new Uri(url).GetLeftPart(UriPartial.Authority);
                             var credentials = new UsernamePasswordCredentials();
-                            Console.WriteLine("Please enter your username: ");
-                            credentials.Username = Console.ReadLine();
 
-                            string pass = "";
-                            Console.WriteLine("Please enter your password:");                            
+                            Tuple<string, string> userNamePassword;
 
-                            ConsoleKeyInfo key;
-
-                            do
+                            if (passwordCache.TryGetValue(domain, out userNamePassword))
                             {
-                                key = Console.ReadKey(true);
+                                credentials.Username = userNamePassword.Item1;
+                                credentials.Password = userNamePassword.Item2;
+                            }
+                            else
+                            { 
+                                Console.WriteLine("Credentials required for: " + url);
+                            
+                                Console.WriteLine("Please enter your username: ");
+                                credentials.Username = Console.ReadLine();
 
-                                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+                                string pass = "";
+                                Console.WriteLine("Please enter your password:");
+
+                                ConsoleKeyInfo key;
+
+                                do
                                 {
-                                    pass += key.KeyChar;
-                                    Console.Write("*");
-                                }
-                                else
-                                {
-                                    if (key.Key == ConsoleKey.Backspace && pass.Length > 0)
+                                    key = Console.ReadKey(true);
+
+                                    if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
                                     {
-                                        pass = pass.Substring(0, (pass.Length - 1));
-                                        Console.Write("\b \b");
+                                        pass += key.KeyChar;
+                                        Console.Write("*");
+                                    }
+                                    else
+                                    {
+                                        if (key.Key == ConsoleKey.Backspace && pass.Length > 0)
+                                        {
+                                            pass = pass.Substring(0, (pass.Length - 1));
+                                            Console.Write("\b \b");
+                                        }
                                     }
                                 }
-                            }
-                            // Stops Receving Keys Once Enter is Pressed
-                            while (key.Key != ConsoleKey.Enter);
+                                // Stops Receving Keys Once Enter is Pressed
+                                while (key.Key != ConsoleKey.Enter);
 
-                            credentials.Password = pass;
+                                credentials.Password = pass;
+
+                                passwordCache.Add(domain, new Tuple<string, string>(credentials.Username, credentials.Password));
+                            }
+
                             return credentials;  
                         };
 
+                        console.WriteLine();
                         console.WriteLine(string.Format("Cloning Reference {0}", reference.Name));
 
                         options.Checkout = false;
