@@ -248,6 +248,8 @@
             }
 
             var project = Project.Create(projectPath, options.Project);
+            project.Type = options.Type;
+            project.Save();
 
             if(project != null)
             {

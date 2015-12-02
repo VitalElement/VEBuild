@@ -144,7 +144,7 @@ namespace VEBuild.Models
 
             console.WriteLine();
 
-            if(result)
+            if(result && !terminateBuild)
             {
                 console.WriteLine("Build Successful");
             }

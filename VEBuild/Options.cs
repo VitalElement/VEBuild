@@ -67,7 +67,7 @@
     [Verb ("create", HelpText = "Creates new projects.")]
     class CreateOptions
     {
-        [Value(0, Required =true, MetaName = "Project Name", HelpText = "Name of project to create")]
+        [Value(0, MetaName = "Project Name", HelpText = "Name of project to create")]
         public string Project { get; set; }
 
         [Option('t', "Type", Required = true, HelpText = "Options are Executable, StaticLibrary or SuperProject")]

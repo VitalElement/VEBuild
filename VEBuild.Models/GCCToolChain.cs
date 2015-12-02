@@ -20,7 +20,14 @@ namespace VEBuild.Models
 
             var startInfo = new ProcessStartInfo();
 
-            startInfo.FileName = Path.Combine(Settings.ToolChainLocation, "arm-none-eabi-gcc.exe");
+            if (file.Language == Language.Cpp)
+            {
+                startInfo.FileName = Path.Combine(Settings.ToolChainLocation, "arm-none-eabi-g++.exe");
+            }
+            else
+            {
+                startInfo.FileName = Path.Combine(Settings.ToolChainLocation, "arm-none-eabi-gcc.exe");
+            }
 
             startInfo.WorkingDirectory = project.Solution.CurrentDirectory;
 
@@ -46,7 +53,7 @@ namespace VEBuild.Models
                 startInfo.RedirectStandardError = true;
                 startInfo.CreateNoWindow = true;
 
-                //console.WriteLine (Path.GetFileNameWithoutExtension(startInfo.FileName) + " " + startInfo.Arguments);
+               // console.WriteLine (Path.GetFileNameWithoutExtension(startInfo.FileName) + " " + startInfo.Arguments);
 
                 using (var process = Process.Start(startInfo))
                 {
@@ -309,6 +316,14 @@ namespace VEBuild.Models
                 result += string.Format("-I\"{0}\" ", Path.Combine(project.CurrentDirectory, include));
             }
 
+            // global includes
+            var globalIncludes = superProject.GetGlobalIncludes();
+
+            foreach (var include in globalIncludes)
+            {
+                result += string.Format("-I\"{0}\" ", include);
+            }
+
             // public includes
             foreach (var include in project.PublicIncludes)
             {
@@ -316,7 +331,10 @@ namespace VEBuild.Models
             }
 
             // includes
-
+            foreach (var include in project.Includes)
+            {
+                result += string.Format("-I\"{0}\" ", Path.Combine(project.CurrentDirectory, include));
+            }            
 
             foreach (var define in superProject.Defines)
             {

@@ -49,7 +49,7 @@
 
             if (!File.Exists(projectFile))
             {
-                var project = new Project { Name = name };
+                var project = new Project { Name = name, PublicIncludes = { "./" } };
                 project.Location = projectFile;
                 project.Save();
 
@@ -68,6 +68,7 @@
         {
             Languages = new List<Language>();
             References = new List<Reference>();
+            GlobalIncludes = new List<string>();
             PublicIncludes = new List<string>();
             Includes = new List<string>();
             SourceFiles = new List<SourceFile>();
@@ -197,6 +198,25 @@
             }
         }
 
+        public List<string> GetGlobalIncludes ()
+        {
+            List<string> result = new List<string>();
+
+            foreach(var reference in References)
+            {
+                var loadedReference = GetReference(reference);
+
+                result.AddRange(loadedReference.GetGlobalIncludes());
+            }
+
+            foreach(var include in GlobalIncludes)
+            {
+                result.Add(Path.Combine(CurrentDirectory, include));
+            }
+
+            return result;
+        }
+
         public void SetSolution(Solution solution)
         {
             this.Solution = solution;
@@ -304,6 +324,13 @@
         }
 
         public List<string> PublicIncludes { get; set; }
+
+        public bool ShouldSerializeGlobalIncludes ()
+        {
+            return GlobalIncludes.Count > 0;
+        }
+
+        public List<string> GlobalIncludes { get; set; }
 
         public bool ShouldSerializeIncludes()
         {
